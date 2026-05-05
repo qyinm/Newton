@@ -35,12 +35,19 @@ def qa_run(
     path: Path,
     target: str = typer.Option(..., "--target", help="Scenario target id to run"),
     backend: str | None = typer.Option(None, "--backend", help="Override backend"),
+    base_url: str | None = typer.Option(None, "--base-url", help="Override web target base URL"),
     out: Path = typer.Option(Path("qa/runs"), "--out", help="Run output directory"),
 ) -> None:
     """Run a Newton QA scenario."""
     try:
         scenario = load_scenario(path)
-        result = run_scenario(scenario, target_id=target, run_dir=out, backend_name=backend)
+        result = run_scenario(
+            scenario,
+            target_id=target,
+            run_dir=out,
+            backend_name=backend,
+            base_url=base_url,
+        )
     except (ScenarioLoadError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 

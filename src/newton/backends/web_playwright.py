@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from time import monotonic
+from urllib.parse import urljoin
 
-from newton.models import EvidenceArtifact, RunResult, Scenario, ScenarioTarget, StepResult
+from newton.models import EvidenceArtifact, RunResult, Scenario, ScenarioStep, ScenarioTarget, StepResult
 
 
 def selector_description(selector: dict[str, object]) -> str:
@@ -50,12 +51,17 @@ class PlaywrightBackend:
         step_results: list[StepResult] = []
         run_evidence: list[EvidenceArtifact] = []
         status = "passed"
+        traces_enabled = scenario.evidence.traces
+        trace_path = run_dir / "playwright-trace.zip"
 
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
-            page = browser.new_page(record_video_dir=str(run_dir) if scenario.evidence.video else None)
+            context = browser.new_context(record_video_dir=str(run_dir) if scenario.evidence.video else None)
+            if traces_enabled:
+                context.tracing.start(screenshots=True, snapshots=True, sources=True)
+            page = context.new_page()
             try:
-                for step in scenario.steps:
+                for index, step in enumerate(scenario.steps, start=1):
                     start = monotonic()
                     try:
                         self._execute_step(page, target, step)
@@ -69,14 +75,18 @@ class PlaywrightBackend:
                         )
                     except Exception as exc:  # noqa: BLE001
                         status = "failed"
-                        screenshot = run_dir / f"{step.id}.png"
-                        page.screenshot(path=str(screenshot))
-                        screenshot_artifact = EvidenceArtifact(
-                            kind="screenshot",
-                            path=str(screenshot),
-                            description=f"Failure screenshot for step {step.id}",
-                        )
-                        run_evidence.append(screenshot_artifact)
+                        step_evidence: list[EvidenceArtifact] = []
+                        if scenario.evidence.screenshots in {"on_failure", "after_each_step"}:
+                            screenshot_name = f"failure-step-{index:03d}-{step.id}.png"
+                            screenshot = run_dir / screenshot_name
+                            page.screenshot(path=str(screenshot), full_page=True)
+                            screenshot_artifact = EvidenceArtifact(
+                                kind="screenshot",
+                                path=screenshot_name,
+                                description=f"Failure screenshot for step {step.id}",
+                            )
+                            run_evidence.append(screenshot_artifact)
+                            step_evidence.append(screenshot_artifact)
                         step_results.append(
                             StepResult(
                                 id=step.id,
@@ -84,7 +94,7 @@ class PlaywrightBackend:
                                 status="failed",
                                 error=str(exc),
                                 duration_ms=int((monotonic() - start) * 1000),
-                                evidence=[screenshot_artifact],
+                                evidence=step_evidence,
                             )
                         )
                         for remaining_step in scenario.steps[len(step_results) :]:
@@ -98,6 +108,17 @@ class PlaywrightBackend:
                             )
                         break
             finally:
+                if traces_enabled:
+                    context.tracing.stop(path=str(trace_path))
+                    if status == "failed":
+                        run_evidence.append(
+                            EvidenceArtifact(
+                                kind="trace",
+                                path=trace_path.name,
+                                description="Playwright trace for failed run",
+                            )
+                        )
+                context.close()
                 browser.close()
 
         return RunResult(
@@ -110,27 +131,40 @@ class PlaywrightBackend:
             evidence=run_evidence,
         )
 
-    def _execute_step(self, page, target: ScenarioTarget, step) -> None:
+    def _execute_step(self, page, target: ScenarioTarget, step: ScenarioStep) -> None:
         selector = step.target.web if step.target and step.target.web else {}
-        if step.action == "navigate":
-            url = selector.get("url", "/")
-            if str(url).startswith("http"):
-                page.goto(str(url))
-            elif target.base_url:
-                page.goto(str(target.base_url).rstrip("/") + str(url))
-            else:
-                raise ValueError("navigate step requires target.base_url or absolute url")
+        if step.action in {"navigate", "goto"}:
+            page.goto(self._resolve_url(target, step), wait_until="domcontentloaded", timeout=step.timeout_ms)
             return
-        if step.action == "tap":
+        if step.action in {"tap", "click"}:
             self._locator(page, selector).click(timeout=step.timeout_ms)
             return
-        if step.action == "input_text":
+        if step.action in {"input_text", "fill"}:
             self._locator(page, selector).fill(step.value or "", timeout=step.timeout_ms)
             return
-        if step.action == "assert_visible":
+        if step.action in {"assert_visible", "wait_for_selector", "expect_visible"}:
             self._locator(page, selector).wait_for(state="visible", timeout=step.timeout_ms)
             return
+        if step.action == "assert_text":
+            text = step.value or str(selector.get("text", ""))
+            if not text:
+                raise ValueError("assert_text requires step.value or target.web.text")
+            page.get_by_text(text).wait_for(state="visible", timeout=step.timeout_ms)
+            return
+        if step.action == "assert_url":
+            expected_url = self._resolve_url(target, step)
+            page.wait_for_url(expected_url, timeout=step.timeout_ms)
+            return
         raise ValueError(f"unsupported web action: {step.action}")
+
+    def _resolve_url(self, target: ScenarioTarget, step: ScenarioStep) -> str:
+        selector = step.target.web if step.target and step.target.web else {}
+        raw_url = str(selector.get("url", step.value or "/"))
+        if raw_url.startswith(("http://", "https://")):
+            return raw_url
+        if target.base_url is None:
+            raise ValueError("navigate/assert_url step requires target.base_url or absolute url")
+        return urljoin(str(target.base_url).rstrip("/") + "/", raw_url.lstrip("/"))
 
     def _locator(self, page, selector: dict[str, object]):
         if "role" in selector:

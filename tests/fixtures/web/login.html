@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Newton Login Fixture</title>
+  </head>
+  <body>
+    <main>
+      <h1>Login</h1>
+      <form id="login-form">
+        <label>Email <input aria-label="Email" name="email" type="email" /></label>
+        <label>Password <input data-testid="password-input" name="password" type="password" /></label>
+        <button type="submit">Log in</button>
+      </form>
+      <section id="dashboard" hidden>
+        <h2>Dashboard</h2>
+        <p>Welcome to Newton QA.</p>
+      </section>
+    </main>
+    <script>
+      document.getElementById('login-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        document.getElementById('dashboard').hidden = false;
+        history.pushState({}, '', '/dashboard');
+      });
+    </script>
+  </body>
+</html>

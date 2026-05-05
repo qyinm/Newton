@@ -14,7 +14,7 @@ Newton exposes a stable CLI contract for agent runtimes and humans alike.
 
 ```bash
 newton qa validate <scenario.yaml>
-newton qa run <scenario.yaml> --target <target-id> [--backend <backend>] [--out <dir>]
+newton qa run <scenario.yaml> --target <target-id> [--backend <backend>] [--base-url <url>] [--out <dir>]
 newton qa report <run-dir>
 ```
 
@@ -25,3 +25,5 @@ newton qa report <run-dir>
 - Outputs are normalized under `qa/runs/<run_id>/`.
 - `result.json` is the machine-readable contract.
 - `qa-report.md` is the human-readable summary.
+- Web runs can override scenario target URLs with `--base-url` for local fixtures, preview deployments, or staging environments.
+- Failure evidence is stored in the run directory and referenced from both output files.

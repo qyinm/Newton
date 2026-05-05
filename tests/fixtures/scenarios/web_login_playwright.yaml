@@ -1,0 +1,46 @@
+scenario:
+  id: web-login-playwright
+  title: Web login Playwright fixture
+  priority: P0
+
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: http://127.0.0.1:8000
+
+steps:
+  - id: open-login
+    action: navigate
+    target:
+      web:
+        url: /login.html
+  - id: enter-email
+    action: input_text
+    value: qa@example.com
+    target:
+      web:
+        role: textbox
+        name: Email
+  - id: enter-password
+    action: input_text
+    value: password123
+    secure: true
+    target:
+      web:
+        test_id: password-input
+  - id: submit
+    action: tap
+    target:
+      web:
+        role: button
+        name: Log in
+  - id: assert-dashboard
+    action: assert_visible
+    target:
+      web:
+        text: Dashboard
+
+evidence:
+  screenshots: on_failure
+  traces: true

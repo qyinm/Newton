@@ -42,8 +42,31 @@ qa/runs/run_*/qa-report.md
 
 ## Web Run
 
+Install Chromium once, then run a web scenario with Playwright:
+
 ```bash
-newton qa run qa/scenarios/web-login-smoke.yaml --target web --backend playwright --out qa/runs
+python -m pip install -e '.[web]'
+python -m playwright install chromium
+newton qa run qa/scenarios/web-login-smoke.yaml \
+  --target web \
+  --backend playwright \
+  --base-url https://staging.example.com \
+  --out qa/runs
+```
+
+On failure, Newton writes debuggable evidence into the run directory:
+
+```text
+qa/runs/run_*/result.json
+qa/runs/run_*/qa-report.md
+qa/runs/run_*/failure-step-*.png
+qa/runs/run_*/playwright-trace.zip
+```
+
+Open traces with:
+
+```bash
+python -m playwright show-trace qa/runs/<run_id>/playwright-trace.zip
 ```
 
 ## Current Backends

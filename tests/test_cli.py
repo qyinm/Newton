@@ -44,6 +44,28 @@ def test_qa_run_dry_run_writes_artifacts(tmp_path: Path):
     assert list(tmp_path.glob("run_*/qa-report.md"))
 
 
+def test_qa_run_accepts_base_url_option(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "dry-run",
+            "--base-url",
+            "http://127.0.0.1:7777",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "status: passed" in result.stdout
+
+
 def test_qa_report_prints_existing_report_path(tmp_path: Path):
     run_dir = tmp_path / "run_123"
     run_dir.mkdir(parents=True)

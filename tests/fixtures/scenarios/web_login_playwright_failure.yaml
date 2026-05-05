@@ -1,0 +1,27 @@
+scenario:
+  id: web-login-playwright-failure
+  title: Web login Playwright fixture failure
+  priority: P0
+
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: http://127.0.0.1:8000
+
+steps:
+  - id: open-login
+    action: navigate
+    target:
+      web:
+        url: /login.html
+  - id: assert-missing-dashboard
+    action: assert_visible
+    timeout_ms: 250
+    target:
+      web:
+        text: Definitely Missing Dashboard
+
+evidence:
+  screenshots: on_failure
+  traces: true

@@ -63,10 +63,25 @@ steps:
 
 ## Supported Actions in MVP
 
+Newton keeps the action vocabulary intentionally small for the first executable web backend.
+
+Canonical cross-platform actions:
+
 - `navigate`: web navigation
 - `tap`: click/tap an element
 - `input_text`: fill an input
 - `assert_visible`: wait until an element/text is visible
+
+Playwright web aliases accepted by the web backend:
+
+- `goto`: alias for `navigate`
+- `click`: alias for `tap`
+- `fill`: alias for `input_text`
+- `wait_for_selector` / `expect_visible`: aliases for `assert_visible`
+- `assert_text`: waits for `step.value` or `target.web.text` to be visible
+- `assert_url`: waits for the current URL to match `target.web.url` or `step.value`
+
+Unsupported actions fail explicitly with `unsupported web action: <action>`.
 
 ## Selector Priority
 
@@ -89,3 +104,9 @@ evidence:
 ```
 
 Evidence is normalized into `qa/runs/<run_id>/result.json` and summarized in `qa-report.md`.
+For Playwright failures, screenshot and trace artifact paths are stored relative to the run directory, for example:
+
+```text
+failure-step-005-assert-dashboard.png
+playwright-trace.zip
+```

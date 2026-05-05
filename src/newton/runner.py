@@ -53,8 +53,11 @@ def run_scenario(
     target_id: str,
     run_dir: Path,
     backend_name: str | None = None,
+    base_url: str | None = None,
 ) -> RunResult:
     target = find_target(scenario, target_id)
+    if base_url is not None:
+        target = ScenarioTarget.model_validate({**target.model_dump(), "base_url": base_url})
     resolved_backend = backend_name or target.backend
     validate_backend_for_target(target, resolved_backend)
     backend = get_backend(resolved_backend)
