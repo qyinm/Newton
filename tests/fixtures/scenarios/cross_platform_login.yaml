@@ -1,0 +1,41 @@
+scenario:
+  id: cross-platform-login
+  title: Cross-platform login
+  priority: P0
+  risk_category: functional
+
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: https://staging.example.com
+  - id: ios
+    platform: ios
+    backend: maestro
+    bundle_id: com.example.app
+
+steps:
+  - id: enter-email
+    action: input_text
+    value: qa@example.com
+    target:
+      web:
+        role: textbox
+        name: Email
+      ios:
+        accessibility_id: emailField
+  - id: submit
+    action: tap
+    target:
+      web:
+        role: button
+        name: Log in
+      ios:
+        accessibility_id: loginButton
+  - id: assert-home
+    action: assert_visible
+    target:
+      web:
+        text: Dashboard
+      ios:
+        text: Home

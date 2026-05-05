@@ -1,0 +1,40 @@
+scenario:
+  id: web-login-smoke
+  title: Web login smoke
+  source_refs:
+    - qa/inputs/tickets.md#login
+  risk_category: functional
+  priority: P0
+  environments: [staging]
+
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: https://staging.example.com
+
+steps:
+  - id: open-login
+    action: navigate
+    target:
+      web:
+        url: /login
+  - id: enter-email
+    action: input_text
+    value: qa@example.com
+    target:
+      web:
+        role: textbox
+        name: Email
+  - id: submit
+    action: tap
+    target:
+      web:
+        role: button
+        name: Log in
+
+evidence:
+  screenshots: on_failure
+  video: true
+  logs: true
+  traces: true

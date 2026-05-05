@@ -1,0 +1,57 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import typer
+
+from newton import __version__
+from newton.runner import run_scenario
+from newton.scenario_loader import ScenarioLoadError, load_scenario
+
+app = typer.Typer(help="Newton QA harness")
+qa_app = typer.Typer(help="QA scenario commands")
+app.add_typer(qa_app, name="qa")
+
+
+@app.command()
+def version() -> None:
+    """Print Newton version."""
+    typer.echo(__version__)
+
+
+@qa_app.command("validate")
+def qa_validate(path: Path) -> None:
+    """Validate a Newton QA scenario YAML file."""
+    try:
+        scenario = load_scenario(path)
+    except ScenarioLoadError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"valid: {scenario.meta.id}")
+
+
+@qa_app.command("run")
+def qa_run(
+    path: Path,
+    target: str = typer.Option(..., "--target", help="Scenario target id to run"),
+    backend: str | None = typer.Option(None, "--backend", help="Override backend"),
+    out: Path = typer.Option(Path("qa/runs"), "--out", help="Run output directory"),
+) -> None:
+    """Run a Newton QA scenario."""
+    try:
+        scenario = load_scenario(path)
+        result = run_scenario(scenario, target_id=target, run_dir=out, backend_name=backend)
+    except (ScenarioLoadError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"run: {out / result.run_id}")
+    typer.echo(f"status: {result.status}")
+
+
+@qa_app.command("report")
+def qa_report(run_path: Path) -> None:
+    """Print the path to an existing QA report."""
+    report_path = run_path / "qa-report.md"
+    if not report_path.exists():
+        raise typer.BadParameter(f"qa report not found: {report_path}")
+    typer.echo(str(report_path))

@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+from pathlib import Path
+from uuid import uuid4
+
+from newton.backends.base import DryRunBackend, ExecutionBackend
+from newton.models import Platform, RunResult, Scenario, ScenarioTarget
+from newton.reporting import render_markdown_report
+
+
+def find_target(scenario: Scenario, target_id: str) -> ScenarioTarget:
+    for target in scenario.targets:
+        if target.id == target_id:
+            return target
+    raise ValueError(f"target not found: {target_id}")
+
+
+def make_run_id() -> str:
+    return f"run_{uuid4().hex[:12]}"
+
+
+def get_backend(name: str) -> ExecutionBackend:
+    if name == "dry-run":
+        return DryRunBackend()
+    if name == "playwright":
+        from newton.backends.web_playwright import PlaywrightBackend
+
+        return PlaywrightBackend()
+    if name == "maestro":
+        from newton.backends.ios_maestro import MaestroCompileBackend
+
+        return MaestroCompileBackend()
+    raise ValueError(f"unsupported backend: {name}")
+
+
+def validate_backend_for_target(target: ScenarioTarget, backend_name: str) -> None:
+    compatibility: dict[str, set[Platform]] = {
+        "dry-run": {"web", "ios"},
+        "playwright": {"web"},
+        "maestro": {"ios"},
+    }
+    supported = compatibility.get(backend_name)
+    if supported is None:
+        raise ValueError(f"unsupported backend: {backend_name}")
+    if target.platform not in supported:
+        raise ValueError(
+            f"backend '{backend_name}' does not support target '{target.id}' on platform '{target.platform}'"
+        )
+
+
+def run_scenario(
+    scenario: Scenario,
+    target_id: str,
+    run_dir: Path,
+    backend_name: str | None = None,
+) -> RunResult:
+    target = find_target(scenario, target_id)
+    resolved_backend = backend_name or target.backend
+    validate_backend_for_target(target, resolved_backend)
+    backend = get_backend(resolved_backend)
+    actual_run_dir = run_dir / make_run_id()
+    result = backend.run(scenario, target, actual_run_dir)
+
+    actual_run_dir.mkdir(parents=True, exist_ok=True)
+    (actual_run_dir / "result.json").write_text(result.model_dump_json(indent=2))
+    (actual_run_dir / "qa-report.md").write_text(render_markdown_report(result))
+    return result
