@@ -15,6 +15,28 @@ python -m pip install -e '.[dev,web]'
 python -m playwright install chromium
 ```
 
+## Plan a Scenario
+
+Generate a deterministic scenario draft from markdown product/ticket context:
+
+```bash
+newton qa plan qa/inputs/login-ticket.md --target web --out qa/scenarios
+```
+
+Outputs:
+
+```text
+qa/scenarios/login-smoke.generated.yaml
+```
+
+For a cross-platform draft:
+
+```bash
+newton qa plan qa/inputs/login-ticket.md --target web,ios --out qa/scenarios
+```
+
+`qa plan` validates the generated scenario before returning successfully.
+
 ## Validate a Scenario
 
 ```bash

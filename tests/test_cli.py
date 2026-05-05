@@ -66,6 +66,26 @@ def test_qa_run_accepts_base_url_option(tmp_path: Path):
     assert "status: passed" in result.stdout
 
 
+def test_qa_plan_generates_valid_scenario(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--target",
+            "web",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "planned:" in result.stdout
+    assert "valid: login-smoke" in result.stdout
+    assert (tmp_path / "login-smoke.generated.yaml").exists()
+
+
 def test_qa_report_prints_existing_report_path(tmp_path: Path):
     run_dir = tmp_path / "run_123"
     run_dir.mkdir(parents=True)

@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 
 from newton import __version__
+from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.runner import run_scenario
 from newton.scenario_loader import ScenarioLoadError, load_scenario
 
@@ -27,6 +28,24 @@ def qa_validate(path: Path) -> None:
     except ScenarioLoadError as exc:
         raise typer.BadParameter(str(exc)) from exc
 
+    typer.echo(f"valid: {scenario.meta.id}")
+
+
+@qa_app.command("plan")
+def qa_plan(
+    path: Path,
+    target: str = typer.Option("web", "--target", help="Comma-separated planning targets: web or web,ios"),
+    out: Path = typer.Option(Path("qa/scenarios"), "--out", help="Scenario output directory"),
+    base_url: str = typer.Option("http://127.0.0.1:8000", "--base-url", help="Default web target base URL"),
+) -> None:
+    """Generate a deterministic Newton scenario YAML draft from markdown context."""
+    try:
+        output_path = plan_scenario_from_markdown(path, target=target, out_dir=out, base_url=base_url)
+        scenario = load_scenario(output_path)
+    except (PlanningError, ScenarioLoadError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"planned: {output_path}")
     typer.echo(f"valid: {scenario.meta.id}")
 
 
