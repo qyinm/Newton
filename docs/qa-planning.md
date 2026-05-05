@@ -1,12 +1,15 @@
 # QA Planning
 
-`newton qa plan` is Newton's first planning-layer command. It converts markdown product or ticket context into a deterministic, validated Newton scenario YAML draft.
+`newton qa plan` is Newton's planning-layer command. It converts markdown product or ticket context into a validated Newton scenario YAML draft.
 
 ## MVP scope
 
-The current planner is intentionally deterministic and template-based. It does not call an LLM yet.
+The planner supports two intentionally small modes:
 
-Supported flow:
+- `--agent template`: deterministic fallback; no external agent call.
+- `--agent codex` / `--agent claude`: external agent harness; the agent proposes YAML and Newton accepts it only after schema validation.
+
+Supported deterministic template flow:
 
 - login smoke test
 - web target
@@ -15,13 +18,26 @@ Supported flow:
 Input requirements:
 
 - markdown file
-- first heading becomes the scenario title
 - generated scenario is self-validated before the command succeeds
 
 ## Usage
 
+Template fallback:
+
 ```bash
-newton qa plan qa/inputs/login-ticket.md --target web --out qa/scenarios
+newton qa plan qa/inputs/login-ticket.md --agent template --target web --out qa/scenarios
+```
+
+Codex-backed agent harness:
+
+```bash
+newton qa plan qa/inputs/login-ticket.md --agent codex --target web --out qa/scenarios
+```
+
+Claude Code uses the same contract and is optional when the CLI is installed and authenticated:
+
+```bash
+newton qa plan qa/inputs/login-ticket.md --agent claude --target web --out qa/scenarios
 ```
 
 Output:
@@ -45,6 +61,18 @@ newton qa plan qa/inputs/login-ticket.md \
   --out qa/scenarios
 ```
 
+## Agent harness contract
+
+For `--agent codex` and `--agent claude`, Newton:
+
+1. builds a strict prompt/output contract from the markdown context,
+2. runs the selected CLI,
+3. extracts YAML from stdout,
+4. validates it with Newton's scenario loader,
+5. writes `<scenario-id>.generated.yaml` only if validation passes.
+
+Invalid agent output fails the command and preserves raw stdout as `<input-stem>.<agent>.raw.txt` in the output directory.
+
 ## Generated web selectors
 
 The login smoke template uses stable web selectors:
@@ -60,6 +88,6 @@ A future planning layer can add:
 
 - multiple scenario templates
 - richer acceptance-criteria parsing
+- Codex/Claude command configuration
 - issue/PRD ingestion
-- LLM-assisted scenario proposals
 - selector mapping from design systems or product metadata

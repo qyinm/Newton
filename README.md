@@ -17,10 +17,11 @@ python -m playwright install chromium
 
 ## Plan a Scenario
 
-Generate a deterministic scenario draft from markdown product/ticket context:
+Generate a scenario draft from markdown product/ticket context. The default `template` agent is deterministic; `codex` and `claude` use the same external-agent YAML contract:
 
 ```bash
-newton qa plan qa/inputs/login-ticket.md --target web --out qa/scenarios
+newton qa plan qa/inputs/login-ticket.md --agent template --target web --out qa/scenarios
+newton qa plan qa/inputs/login-ticket.md --agent codex --target web --out qa/scenarios
 ```
 
 Outputs:
