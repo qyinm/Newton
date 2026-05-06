@@ -49,11 +49,11 @@ def _first_failed_tracker_item(markdown: str) -> FailedTrackerItem | None:
 
     for line in markdown.splitlines():
         stripped = line.strip()
-        if stripped.startswith("- [ ] "):
+        if stripped.startswith(("- [ ] ", "- [x] ", "- [X] ")):
             failed = flush()
             if failed is not None:
                 return failed
-            current_item = stripped.removeprefix("- [ ] ").strip()
+            current_item = _tracker_item_text(stripped)
             current_env = "dev"
             current_status = "not run"
             current_notes = ""
@@ -68,6 +68,13 @@ def _first_failed_tracker_item(markdown: str) -> FailedTrackerItem | None:
             current_notes = stripped.removeprefix("- notes:").strip()
 
     return flush()
+
+
+def _tracker_item_text(stripped_line: str) -> str:
+    for prefix in ("- [ ] ", "- [x] ", "- [X] "):
+        if stripped_line.startswith(prefix):
+            return stripped_line.removeprefix(prefix).strip()
+    return stripped_line
 
 
 def _render_bug_ticket_draft(item: FailedTrackerItem, tracker_path: Path) -> str:

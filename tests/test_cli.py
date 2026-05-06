@@ -252,6 +252,53 @@ def test_qa_bug_draft_generates_bug_ticket_from_failed_tracker_item(tmp_path: Pa
     assert (tmp_path / "bug-ticket-draft.md").exists()
 
 
+def test_qa_tracker_update_updates_generated_tracker_item(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    tracker_path = tmp_path / "login" / "qa-run-tracker.md"
+
+    update = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "tracker-update",
+            str(tracker_path),
+            "--item",
+            "5",
+            "--env",
+            "stg",
+            "--status",
+            "failed",
+            "--notes",
+            "Dashboard never appears after submit",
+        ],
+    )
+
+    assert update.exit_code == 0
+    assert f"updated_tracker: {tracker_path}" in update.stdout
+    tracker = tracker_path.read_text()
+    assert "- [x] User sees Dashboard" in tracker
+    assert "  - env: stg" in tracker
+    assert "  - status: failed" in tracker
+    assert "  - notes: Dashboard never appears after submit" in tracker
+
+    draft = CliRunner().invoke(app, ["qa", "bug-draft", str(tracker_path)])
+
+    assert draft.exit_code == 0
+    draft_text = (tmp_path / "login" / "bug-ticket-draft.md").read_text()
+    assert "User sees Dashboard" in draft_text
+    assert "Environment: stg" in draft_text
+
+
 def test_qa_plan_generates_valid_scenario(tmp_path: Path):
     result = CliRunner().invoke(
         app,

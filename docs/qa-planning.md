@@ -37,9 +37,21 @@ The bundle is intentionally small and deterministic:
 
 It does not call Codex, Claude, or any external agent.
 
-## Bug ticket drafts
+## Tracker updates and bug ticket drafts
 
-After a human or agent updates `qa-run-tracker.md` and marks a checklist item as failed, generate a minimal bug ticket draft:
+Update a generated `qa-run-tracker.md` checklist item from the CLI:
+
+```bash
+newton qa tracker-update qa/plans/login/qa-run-tracker.md \
+  --item 5 \
+  --env stg \
+  --status failed \
+  --notes "Dashboard never appears after submit"
+```
+
+Supported statuses are `not run`, `passed`, `failed`, `blocked`, and `needs retest`. Newton updates the selected checklist item and the matching environment status in place.
+
+After a human or agent marks a checklist item as failed, generate a minimal bug ticket draft:
 
 ```bash
 newton qa bug-draft qa/plans/login/qa-run-tracker.md

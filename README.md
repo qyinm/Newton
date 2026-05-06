@@ -35,9 +35,14 @@ qa/plans/login/qa-run-tracker.md
 qa/plans/login/manifest.json
 ```
 
-After updating the tracker with a failed checklist item, generate a bug ticket draft:
+After updating the tracker with a checklist result, generate a bug ticket draft from the first failed item:
 
 ```bash
+newton qa tracker-update qa/plans/login/qa-run-tracker.md \
+  --item 5 \
+  --env stg \
+  --status failed \
+  --notes "Dashboard never appears after submit"
 newton qa bug-draft qa/plans/login/qa-run-tracker.md
 ```
 

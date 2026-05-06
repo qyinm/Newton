@@ -13,6 +13,7 @@ from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
 from newton.run_index import read_run_index
 from newton.runner import run_scenario
 from newton.scenario_loader import ScenarioLoadError, load_scenario
+from newton.tracker_update import TrackerUpdateError, update_tracker_item
 
 app = typer.Typer(help="Newton QA harness")
 qa_app = typer.Typer(help="QA scenario commands")
@@ -115,6 +116,29 @@ def qa_bug_draft(
         raise typer.BadParameter(str(exc)) from exc
 
     typer.echo(f"bug_ticket_draft: {output_path}")
+
+
+@qa_app.command("tracker-update")
+def qa_tracker_update(
+    tracker_path: Path,
+    item: int = typer.Option(..., "--item", help="1-based checklist item number to update"),
+    env: str = typer.Option(..., "--env", help="Environment: dev, stg, or prod"),
+    status: str = typer.Option(..., "--status", help="Status: not run, passed, failed, blocked, or needs retest"),
+    notes: str = typer.Option("", "--notes", help="Status notes for the checklist item"),
+) -> None:
+    """Update one generated QA run tracker checklist item."""
+    try:
+        updated_path = update_tracker_item(
+            tracker_path,
+            item_number=item,
+            env=env,
+            status=status,
+            notes=notes,
+        )
+    except TrackerUpdateError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"updated_tracker: {updated_path}")
 
 
 @qa_app.command("run")
