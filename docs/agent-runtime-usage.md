@@ -25,7 +25,7 @@ newton qa report <run-dir>
 
 - Inputs are file-first and replayable.
 - Agents should call the CLI rather than invent ad-hoc workflows.
-- `qa plan-bundle` turns markdown context into a deterministic minimal planning bundle: scope, checklist, risk map, and manifest.
+- `qa plan-bundle` turns markdown context into a deterministic minimal planning bundle: scope, checklist, risk map, QA estimate, automation candidates, and manifest.
 - `qa plan` turns markdown context into a validated scenario YAML draft.
 - In agent mode, Codex or Claude Code proposes YAML; Newton accepts it only after schema validation.
 - `qa plan` writes `<input-stem>.<agent>.plan.json` as planning provenance, including selected agent, input, prompt/raw output paths, accepted scenario path, and validation status.

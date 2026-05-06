@@ -17,6 +17,8 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
         "qa-scope.md",
         "checklist.md",
         "risk-map.md",
+        "qa-estimate.md",
+        "automation-candidates.md",
         "manifest.json",
     }
     assert {path.name for path in bundle_dir.iterdir()} == expected_files
@@ -29,6 +31,8 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
             "qa_scope": str(bundle_dir / "qa-scope.md"),
             "checklist": str(bundle_dir / "checklist.md"),
             "risk_map": str(bundle_dir / "risk-map.md"),
+            "qa_estimate": str(bundle_dir / "qa-estimate.md"),
+            "automation_candidates": str(bundle_dir / "automation-candidates.md"),
         },
     }
 
@@ -44,6 +48,21 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     risk_map = (bundle_dir / "risk-map.md").read_text()
     assert "# Risk Map: Login" in risk_map
     assert "| functional | P0 | Login flow blocks core user access |" in risk_map
+
+    estimate = (bundle_dir / "qa-estimate.md").read_text()
+    assert "# QA Estimate: Login" in estimate
+    assert "Estimated QA effort: S" in estimate
+    assert "Checklist items: 5" in estimate
+    assert "Suggested Manual QA Time" in estimate
+
+    automation = (bundle_dir / "automation-candidates.md").read_text()
+    assert "# Automation Candidates: Login" in automation
+    assert "## Recommended" in automation
+    assert "User can open login page" in automation
+    assert "Source: checklist item 1" in automation
+    assert "Suggested automation: web scenario smoke test" in automation
+    assert "## Manual For Now" in automation
+    assert "User sees Dashboard" in automation
 
 
 def test_generate_planning_bundle_rejects_empty_input(tmp_path: Path):

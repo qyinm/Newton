@@ -25,11 +25,15 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
     qa_scope_path = bundle_dir / "qa-scope.md"
     checklist_path = bundle_dir / "checklist.md"
     risk_map_path = bundle_dir / "risk-map.md"
+    qa_estimate_path = bundle_dir / "qa-estimate.md"
+    automation_candidates_path = bundle_dir / "automation-candidates.md"
     manifest_path = bundle_dir / "manifest.json"
 
     qa_scope_path.write_text(_render_scope(title, summary, input_path))
     checklist_path.write_text(_render_checklist(title, checklist_items))
     risk_map_path.write_text(_render_risk_map(title))
+    qa_estimate_path.write_text(_render_estimate(title, checklist_items, input_path))
+    automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
     manifest_path.write_text(
         json.dumps(
             {
@@ -39,6 +43,8 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
                     "qa_scope": str(qa_scope_path),
                     "checklist": str(checklist_path),
                     "risk_map": str(risk_map_path),
+                    "qa_estimate": str(qa_estimate_path),
+                    "automation_candidates": str(automation_candidates_path),
                 },
             },
             indent=2,
@@ -134,4 +140,56 @@ def _render_risk_map(title: str) -> str:
 | Area | Priority | Rationale |
 | --- | --- | --- |
 | functional | P0 | {title} flow blocks core user access |
+"""
+
+
+def _render_estimate(title: str, checklist_items: list[str], input_path: Path) -> str:
+    return f"""# QA Estimate: {title}
+
+## Summary
+
+Estimated QA effort: S
+
+## Basis
+
+- Checklist items: {len(checklist_items)}
+- Risk level: P0 functional
+- Source input: `{input_path}`
+
+## Suggested Manual QA Time
+
+- Happy path smoke: 15 min
+- Negative/error cases: 15 min
+- Evidence/report review: 10 min
+
+## Assumptions
+
+- Local or staging environment is available.
+- No cross-platform mobile validation included.
+"""
+
+
+def _render_automation_candidates(title: str, checklist_items: list[str]) -> str:
+    recommended = checklist_items[0]
+    manual_items = checklist_items[1:]
+    manual_section = "\n".join(
+        f"- {item}\n  - Source: checklist item {index}\n  - Reason: keep manual until the flow and copy are stable."
+        for index, item in enumerate(manual_items, start=2)
+    )
+    if not manual_section:
+        manual_section = "- No additional checklist items."
+
+    return f"""# Automation Candidates: {title}
+
+## Recommended
+
+- {recommended}
+  - Source: checklist item 1
+  - Suggested automation: web scenario smoke test
+  - Priority: P0
+  - Reason: stable happy path with clear pass/fail signal.
+
+## Manual For Now
+
+{manual_section}
 """

@@ -19,6 +19,8 @@ Output:
 qa/plans/login/qa-scope.md
 qa/plans/login/checklist.md
 qa/plans/login/risk-map.md
+qa/plans/login/qa-estimate.md
+qa/plans/login/automation-candidates.md
 qa/plans/login/manifest.json
 ```
 
@@ -27,6 +29,8 @@ The bundle is intentionally small and deterministic:
 - `qa-scope.md`: source, goal, in-scope, and out-of-scope summary.
 - `checklist.md`: manual checklist derived from acceptance criteria bullets.
 - `risk-map.md`: one minimal functional P0 risk row.
+- `qa-estimate.md`: deterministic small-effort estimate with checklist count, P0 basis, source input, manual QA time, and assumptions.
+- `automation-candidates.md`: first checklist item recommended for smoke automation; remaining items kept manual for now.
 - `manifest.json`: machine-readable paths for the bundle artifacts.
 
 It does not call Codex, Claude, or any external agent.
