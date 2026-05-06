@@ -87,11 +87,12 @@ def qa_plan(
 @qa_app.command("plan-bundle")
 def qa_plan_bundle(
     path: Path,
+    source: list[Path] = typer.Option([], "--source", help="Additional markdown source file to merge into the bundle"),
     out: Path = typer.Option(Path("qa/plans"), "--out", help="Planning bundle output directory"),
 ) -> None:
     """Generate a minimal QA planning bundle from markdown context."""
     try:
-        bundle_dir = generate_planning_bundle(path, out_dir=out)
+        bundle_dir = generate_planning_bundle(path, out_dir=out, source_paths=source)
     except PlanningBundleError as exc:
         raise typer.BadParameter(str(exc)) from exc
 

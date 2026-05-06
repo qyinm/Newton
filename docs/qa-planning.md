@@ -10,8 +10,13 @@ Newton exposes two planning-layer commands:
 Use `plan-bundle` when you want PRD-style QA planning artifacts rather than an executable scenario:
 
 ```bash
-newton qa plan-bundle qa/inputs/login-ticket.md --out qa/plans
+newton qa plan-bundle qa/inputs/login-ticket.md \
+  --source qa/inputs/login-policy.md \
+  --source qa/inputs/staging-notes.md \
+  --out qa/plans
 ```
+
+The first path remains the primary ticket/context source used for title and goal extraction. Repeated `--source` paths are merged into checklist and test-case generation, and all source paths are recorded in `manifest.json`.
 
 Output:
 

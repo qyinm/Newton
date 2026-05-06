@@ -226,12 +226,45 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
     manifest = json.loads((tmp_path / "login" / "manifest.json").read_text())
     assert manifest["plan_id"] == "login"
     assert manifest["input_path"] == "tests/fixtures/inputs/login_ticket.md"
+    assert manifest["source_paths"] == ["tests/fixtures/inputs/login_ticket.md"]
     assert manifest["artifacts"]["test_cases"] == str(tmp_path / "login" / "test-cases.csv")
     assert manifest["artifacts"]["qa_estimate"] == str(tmp_path / "login" / "qa-estimate.md")
     assert manifest["artifacts"]["automation_candidates"] == str(
         tmp_path / "login" / "automation-candidates.md"
     )
     assert manifest["artifacts"]["qa_run_tracker"] == str(tmp_path / "login" / "qa-run-tracker.md")
+
+
+def test_qa_plan_bundle_accepts_additional_markdown_sources(tmp_path: Path):
+    policy = tmp_path / "policy.md"
+    policy.write_text(
+        """# Login Policy
+
+Acceptance criteria:
+- Error message does not expose whether email exists
+"""
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--source",
+            str(policy),
+            "--out",
+            str(tmp_path / "plans"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    bundle_dir = tmp_path / "plans" / "login"
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["source_paths"] == ["tests/fixtures/inputs/login_ticket.md", str(policy)]
+    assert "- [ ] Error message does not expose whether email exists" in (
+        bundle_dir / "checklist.md"
+    ).read_text()
 
 
 def test_qa_bug_draft_generates_bug_ticket_from_failed_tracker_item(tmp_path: Path):

@@ -30,6 +30,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     assert manifest == {
         "plan_id": "login",
         "input_path": "tests/fixtures/inputs/login_ticket.md",
+        "source_paths": ["tests/fixtures/inputs/login_ticket.md"],
         "artifacts": {
             "qa_scope": str(bundle_dir / "qa-scope.md"),
             "checklist": str(bundle_dir / "checklist.md"),
@@ -96,6 +97,46 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     assert "  - env: dev" in tracker
     assert "  - status: not run" in tracker
     assert "  - notes:" in tracker
+
+
+def test_generate_planning_bundle_merges_additional_markdown_sources(tmp_path: Path):
+    policy = tmp_path / "policy.md"
+    policy.write_text(
+        """# Login Policy
+
+Policy source for login QA.
+
+Acceptance criteria:
+- Error message does not expose whether email exists
+- Password field masks typed input
+"""
+    )
+
+    bundle_dir = generate_planning_bundle(
+        Path("tests/fixtures/inputs/login_ticket.md"),
+        out_dir=tmp_path / "plans",
+        source_paths=[policy],
+    )
+
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["input_path"] == "tests/fixtures/inputs/login_ticket.md"
+    assert manifest["source_paths"] == ["tests/fixtures/inputs/login_ticket.md", str(policy)]
+
+    scope = (bundle_dir / "qa-scope.md").read_text()
+    assert "## Sources" in scope
+    assert "tests/fixtures/inputs/login_ticket.md" in scope
+    assert str(policy) in scope
+
+    checklist = (bundle_dir / "checklist.md").read_text()
+    assert "- [ ] Error message does not expose whether email exists" in checklist
+    assert "- [ ] Password field masks typed input" in checklist
+
+    with (bundle_dir / "test-cases.csv").open(newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+    assert rows[-2]["ID"] == "TC-006"
+    assert rows[-2]["title"] == "Error message does not expose whether email exists"
+    assert rows[-1]["ID"] == "TC-007"
+    assert rows[-1]["source_reference"] == "Acceptance criteria item 7"
 
 
 def test_generate_planning_bundle_rejects_empty_input(tmp_path: Path):

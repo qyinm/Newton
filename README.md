@@ -20,8 +20,13 @@ python -m playwright install chromium
 Generate a minimal PRD-style planning bundle from markdown product/ticket context:
 
 ```bash
-newton qa plan-bundle qa/inputs/login-ticket.md --out qa/plans
+newton qa plan-bundle qa/inputs/login-ticket.md \
+  --source qa/inputs/login-policy.md \
+  --source qa/inputs/staging-notes.md \
+  --out qa/plans
 ```
+
+Use `--source` to merge extra markdown sources such as policy notes, staging notes, or design annotations into the same checklist/test-case bundle.
 
 Outputs:
 

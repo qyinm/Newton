@@ -13,7 +13,7 @@ Newton exposes a stable CLI contract for agent runtimes and humans alike.
 ## Core Commands
 
 ```bash
-newton qa plan-bundle <context.md> [--out <dir>]
+newton qa plan-bundle <context.md> [--source <extra.md>]... [--out <dir>]
 newton qa tracker-update <qa-run-tracker.md> --item <n> --env <dev|stg|prod> --status <status> [--notes <text>]
 newton qa tracker-update-from-run <qa-run-tracker.md> --item <n> --env <dev|stg|prod> --run <run-dir>
 newton qa bug-draft <qa-run-tracker.md> [--out <bug-ticket-draft.md>]
@@ -28,7 +28,7 @@ newton qa report <run-dir>
 
 - Inputs are file-first and replayable.
 - Agents should call the CLI rather than invent ad-hoc workflows.
-- `qa plan-bundle` turns markdown context into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, risk map, QA estimate, automation candidates, QA run tracker, and manifest.
+- `qa plan-bundle` turns one or more markdown context files into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, risk map, QA estimate, automation candidates, QA run tracker, and manifest.
 - `qa tracker-update` updates one generated QA run tracker checklist item plus the selected environment status.
 - `qa tracker-update-from-run` maps a completed `qa run` result onto one tracker item and records the run report path in notes.
 - `qa bug-draft` reads the first failed checklist item from a QA run tracker and writes `bug-ticket-draft.md`.

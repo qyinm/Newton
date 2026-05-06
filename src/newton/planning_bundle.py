@@ -11,15 +11,15 @@ class PlanningBundleError(ValueError):
     """Raised when markdown context cannot produce a planning bundle."""
 
 
-def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
-    if not input_path.exists():
-        raise PlanningBundleError(f"input markdown not found: {input_path}")
+def generate_planning_bundle(input_path: Path, out_dir: Path, source_paths: list[Path] | None = None) -> Path:
+    all_source_paths = [input_path, *(source_paths or [])]
+    markdown_by_path = _read_markdown_sources(all_source_paths)
 
-    markdown = input_path.read_text()
+    markdown = markdown_by_path[0]
     title = _extract_title(markdown)
     plan_id = _slugify(title)
     summary = _extract_summary(markdown)
-    checklist_items = _extract_acceptance_criteria(markdown) or [summary]
+    checklist_items = _extract_all_acceptance_criteria(markdown_by_path) or [summary]
 
     bundle_dir = out_dir / plan_id
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -33,7 +33,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
     qa_run_tracker_path = bundle_dir / "qa-run-tracker.md"
     manifest_path = bundle_dir / "manifest.json"
 
-    qa_scope_path.write_text(_render_scope(title, summary, input_path))
+    qa_scope_path.write_text(_render_scope(title, summary, all_source_paths))
     checklist_path.write_text(_render_checklist(title, checklist_items))
     test_cases_path.write_text(_render_test_cases_csv(checklist_items))
     risk_map_path.write_text(_render_risk_map(title))
@@ -45,6 +45,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
             {
                 "plan_id": plan_id,
                 "input_path": str(input_path),
+                "source_paths": [str(source_path) for source_path in all_source_paths],
                 "artifacts": {
                     "qa_scope": str(qa_scope_path),
                     "checklist": str(checklist_path),
@@ -60,6 +61,22 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
         + "\n"
     )
     return bundle_dir
+
+
+def _read_markdown_sources(paths: list[Path]) -> list[str]:
+    markdown_sources: list[str] = []
+    for path in paths:
+        if not path.exists():
+            raise PlanningBundleError(f"input markdown not found: {path}")
+        markdown_sources.append(path.read_text())
+    return markdown_sources
+
+
+def _extract_all_acceptance_criteria(markdown_sources: list[str]) -> list[str]:
+    items: list[str] = []
+    for markdown in markdown_sources:
+        items.extend(_extract_acceptance_criteria(markdown))
+    return items
 
 
 def _extract_title(markdown: str) -> str:
@@ -111,12 +128,13 @@ def _extract_acceptance_criteria(markdown: str) -> list[str]:
     return items
 
 
-def _render_scope(title: str, summary: str, input_path: Path) -> str:
+def _render_scope(title: str, summary: str, source_paths: list[Path]) -> str:
+    sources = "\n".join(f"- `{source_path}`" for source_path in source_paths)
     return f"""# QA Scope: {title}
 
-## Source
+## Sources
 
-- `{input_path}`
+{sources}
 
 ## Goal
 
