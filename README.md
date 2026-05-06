@@ -31,7 +31,20 @@ qa/plans/login/checklist.md
 qa/plans/login/risk-map.md
 qa/plans/login/qa-estimate.md
 qa/plans/login/automation-candidates.md
+qa/plans/login/qa-run-tracker.md
 qa/plans/login/manifest.json
+```
+
+After updating the tracker with a failed checklist item, generate a bug ticket draft:
+
+```bash
+newton qa bug-draft qa/plans/login/qa-run-tracker.md
+```
+
+Output:
+
+```text
+qa/plans/login/bug-ticket-draft.md
 ```
 
 The bundle is deterministic and does not call an external agent.

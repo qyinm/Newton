@@ -212,11 +212,13 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
     assert f"bundle: {tmp_path / 'login'}" in result.stdout
     assert f"estimate: {tmp_path / 'login' / 'qa-estimate.md'}" in result.stdout
     assert f"automation_candidates: {tmp_path / 'login' / 'automation-candidates.md'}" in result.stdout
+    assert f"qa_run_tracker: {tmp_path / 'login' / 'qa-run-tracker.md'}" in result.stdout
     assert (tmp_path / "login" / "qa-scope.md").exists()
     assert (tmp_path / "login" / "checklist.md").exists()
     assert (tmp_path / "login" / "risk-map.md").exists()
     assert (tmp_path / "login" / "qa-estimate.md").exists()
     assert (tmp_path / "login" / "automation-candidates.md").exists()
+    assert (tmp_path / "login" / "qa-run-tracker.md").exists()
     assert (tmp_path / "login" / "manifest.json").exists()
 
     manifest = json.loads((tmp_path / "login" / "manifest.json").read_text())
@@ -226,6 +228,28 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
     assert manifest["artifacts"]["automation_candidates"] == str(
         tmp_path / "login" / "automation-candidates.md"
     )
+    assert manifest["artifacts"]["qa_run_tracker"] == str(tmp_path / "login" / "qa-run-tracker.md")
+
+
+def test_qa_bug_draft_generates_bug_ticket_from_failed_tracker_item(tmp_path: Path):
+    tracker_path = tmp_path / "qa-run-tracker.md"
+    tracker_path.write_text(
+        """# QA Run Tracker: Login
+
+## Checklist Status
+
+- [ ] User sees Dashboard
+  - env: stg
+  - status: failed
+  - notes: Dashboard never appears after submit
+"""
+    )
+
+    result = CliRunner().invoke(app, ["qa", "bug-draft", str(tracker_path)])
+
+    assert result.exit_code == 0
+    assert f"bug_ticket_draft: {tmp_path / 'bug-ticket-draft.md'}" in result.stdout
+    assert (tmp_path / "bug-ticket-draft.md").exists()
 
 
 def test_qa_plan_generates_valid_scenario(tmp_path: Path):

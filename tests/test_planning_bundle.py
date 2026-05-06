@@ -19,6 +19,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
         "risk-map.md",
         "qa-estimate.md",
         "automation-candidates.md",
+        "qa-run-tracker.md",
         "manifest.json",
     }
     assert {path.name for path in bundle_dir.iterdir()} == expected_files
@@ -33,6 +34,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
             "risk_map": str(bundle_dir / "risk-map.md"),
             "qa_estimate": str(bundle_dir / "qa-estimate.md"),
             "automation_candidates": str(bundle_dir / "automation-candidates.md"),
+            "qa_run_tracker": str(bundle_dir / "qa-run-tracker.md"),
         },
     }
 
@@ -63,6 +65,18 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     assert "Suggested automation: web scenario smoke test" in automation
     assert "## Manual For Now" in automation
     assert "User sees Dashboard" in automation
+
+    tracker = (bundle_dir / "qa-run-tracker.md").read_text()
+    assert "# QA Run Tracker: Login" in tracker
+    assert "## Environment Status" in tracker
+    assert "- dev: not run" in tracker
+    assert "- stg: not run" in tracker
+    assert "- prod: not run" in tracker
+    assert "## Checklist Status" in tracker
+    assert "- [ ] User can open login page" in tracker
+    assert "  - env: dev" in tracker
+    assert "  - status: not run" in tracker
+    assert "  - notes:" in tracker
 
 
 def test_generate_planning_bundle_rejects_empty_input(tmp_path: Path):

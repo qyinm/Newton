@@ -6,6 +6,7 @@ import typer
 
 from newton import __version__
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
+from newton.bug_draft import BugDraftError, write_bug_ticket_draft
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
@@ -99,6 +100,21 @@ def qa_plan_bundle(
     typer.echo(f"risk_map: {bundle_dir / 'risk-map.md'}")
     typer.echo(f"estimate: {bundle_dir / 'qa-estimate.md'}")
     typer.echo(f"automation_candidates: {bundle_dir / 'automation-candidates.md'}")
+    typer.echo(f"qa_run_tracker: {bundle_dir / 'qa-run-tracker.md'}")
+
+
+@qa_app.command("bug-draft")
+def qa_bug_draft(
+    tracker_path: Path,
+    out: Path | None = typer.Option(None, "--out", help="Bug ticket draft output path"),
+) -> None:
+    """Generate a bug ticket draft from the first failed tracker item."""
+    try:
+        output_path = write_bug_ticket_draft(tracker_path, output_path=out)
+    except BugDraftError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"bug_ticket_draft: {output_path}")
 
 
 @qa_app.command("run")

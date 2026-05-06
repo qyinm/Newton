@@ -27,6 +27,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
     risk_map_path = bundle_dir / "risk-map.md"
     qa_estimate_path = bundle_dir / "qa-estimate.md"
     automation_candidates_path = bundle_dir / "automation-candidates.md"
+    qa_run_tracker_path = bundle_dir / "qa-run-tracker.md"
     manifest_path = bundle_dir / "manifest.json"
 
     qa_scope_path.write_text(_render_scope(title, summary, input_path))
@@ -34,6 +35,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
     risk_map_path.write_text(_render_risk_map(title))
     qa_estimate_path.write_text(_render_estimate(title, checklist_items, input_path))
     automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
+    qa_run_tracker_path.write_text(_render_run_tracker(title, checklist_items))
     manifest_path.write_text(
         json.dumps(
             {
@@ -45,6 +47,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
                     "risk_map": str(risk_map_path),
                     "qa_estimate": str(qa_estimate_path),
                     "automation_candidates": str(automation_candidates_path),
+                    "qa_run_tracker": str(qa_run_tracker_path),
                 },
             },
             indent=2,
@@ -192,4 +195,22 @@ def _render_automation_candidates(title: str, checklist_items: list[str]) -> str
 ## Manual For Now
 
 {manual_section}
+"""
+
+
+def _render_run_tracker(title: str, checklist_items: list[str]) -> str:
+    checklist_status = "\n".join(
+        f"- [ ] {item}\n  - env: dev\n  - status: not run\n  - notes:" for item in checklist_items
+    )
+    return f"""# QA Run Tracker: {title}
+
+## Environment Status
+
+- dev: not run
+- stg: not run
+- prod: not run
+
+## Checklist Status
+
+{checklist_status}
 """

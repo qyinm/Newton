@@ -14,6 +14,7 @@ Newton exposes a stable CLI contract for agent runtimes and humans alike.
 
 ```bash
 newton qa plan-bundle <context.md> [--out <dir>]
+newton qa bug-draft <qa-run-tracker.md> [--out <bug-ticket-draft.md>]
 newton qa plan <context.md> [--agent <template|codex|claude>] --target <web|web,ios> [--base-url <url>] [--out <dir>]
 newton qa validate <scenario.yaml>
 newton qa run <scenario.yaml> --target <target-id> [--backend <backend>] [--base-url <url>] [--plan-provenance <plan.json>] [--out <dir>]
@@ -25,7 +26,8 @@ newton qa report <run-dir>
 
 - Inputs are file-first and replayable.
 - Agents should call the CLI rather than invent ad-hoc workflows.
-- `qa plan-bundle` turns markdown context into a deterministic minimal planning bundle: scope, checklist, risk map, QA estimate, automation candidates, and manifest.
+- `qa plan-bundle` turns markdown context into a deterministic minimal planning bundle: scope, checklist, risk map, QA estimate, automation candidates, QA run tracker, and manifest.
+- `qa bug-draft` reads the first failed checklist item from a QA run tracker and writes `bug-ticket-draft.md`.
 - `qa plan` turns markdown context into a validated scenario YAML draft.
 - In agent mode, Codex or Claude Code proposes YAML; Newton accepts it only after schema validation.
 - `qa plan` writes `<input-stem>.<agent>.plan.json` as planning provenance, including selected agent, input, prompt/raw output paths, accepted scenario path, and validation status.

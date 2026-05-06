@@ -21,6 +21,7 @@ qa/plans/login/checklist.md
 qa/plans/login/risk-map.md
 qa/plans/login/qa-estimate.md
 qa/plans/login/automation-candidates.md
+qa/plans/login/qa-run-tracker.md
 qa/plans/login/manifest.json
 ```
 
@@ -31,9 +32,20 @@ The bundle is intentionally small and deterministic:
 - `risk-map.md`: one minimal functional P0 risk row.
 - `qa-estimate.md`: deterministic small-effort estimate with checklist count, P0 basis, source input, manual QA time, and assumptions.
 - `automation-candidates.md`: first checklist item recommended for smoke automation; remaining items kept manual for now.
+- `qa-run-tracker.md`: initial dev/stg/prod and per-checklist status tracker, all set to `not run`.
 - `manifest.json`: machine-readable paths for the bundle artifacts.
 
 It does not call Codex, Claude, or any external agent.
+
+## Bug ticket drafts
+
+After a human or agent updates `qa-run-tracker.md` and marks a checklist item as failed, generate a minimal bug ticket draft:
+
+```bash
+newton qa bug-draft qa/plans/login/qa-run-tracker.md
+```
+
+Newton reads the first failed tracker item and writes `bug-ticket-draft.md` next to the tracker by default. The draft includes the failed checklist item, environment, notes, reproduction steps, expected result, actual result, and source tracker path.
 
 ## Scenario planning
 
