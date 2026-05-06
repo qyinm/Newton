@@ -4,6 +4,21 @@ Newton is an agent-native QA harness that turns sprint context into executable w
 
 ## Install
 
+Install the official CLI directly from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qyinm/Newton/main/scripts/install.sh | bash
+newton version
+```
+
+The installer uses `uv tool install` when `uv` is available, falls back to `pipx`, and installs the Playwright Chromium browser by default. To install only the base CLI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qyinm/Newton/main/scripts/install.sh | bash -s -- --no-web
+```
+
+For local development from this checkout:
+
 ```bash
 python -m pip install -e '.[dev]'
 ```
