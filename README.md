@@ -26,7 +26,7 @@ newton qa plan-bundle qa/inputs/login-ticket.md \
   --out qa/plans
 ```
 
-Use `--source` to merge extra markdown sources such as policy notes, staging notes, or design annotations into the same checklist/test-case bundle.
+Use `--source` to merge extra markdown sources such as policy notes, staging notes, or design annotations into the same checklist/test-case bundle. `risk-map.md` includes baseline PRD risk categories: edge case, network failure, permission/role, policy conflict, and regression.
 
 Outputs:
 

@@ -36,7 +36,7 @@ The bundle is intentionally small and deterministic:
 - `qa-scope.md`: source, goal, in-scope, and out-of-scope summary.
 - `checklist.md`: manual checklist derived from acceptance criteria bullets.
 - `test-cases.csv`: structured test case rows derived from checklist items, with ID, priority, precondition, steps, expected result, environment, risk category, and source reference.
-- `risk-map.md`: one minimal functional P0 risk row.
+- `risk-map.md`: baseline PRD risk categories: functional, edge case, network failure, permission/role, policy conflict, and regression.
 - `qa-estimate.md`: deterministic small-effort estimate with checklist count, P0 basis, source input, manual QA time, and assumptions.
 - `automation-candidates.md`: first checklist item recommended for smoke automation; remaining items kept manual for now.
 - `qa-run-tracker.md`: initial dev/stg/prod and per-checklist status tracker, all set to `not run`.

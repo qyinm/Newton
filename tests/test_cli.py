@@ -233,6 +233,12 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
         tmp_path / "login" / "automation-candidates.md"
     )
     assert manifest["artifacts"]["qa_run_tracker"] == str(tmp_path / "login" / "qa-run-tracker.md")
+    risk_map = (tmp_path / "login" / "risk-map.md").read_text()
+    assert "| edge case |" in risk_map
+    assert "| network failure |" in risk_map
+    assert "| permission/role |" in risk_map
+    assert "| policy conflict |" in risk_map
+    assert "| regression |" in risk_map
 
 
 def test_qa_plan_bundle_accepts_additional_markdown_sources(tmp_path: Path):

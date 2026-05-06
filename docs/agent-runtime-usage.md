@@ -28,7 +28,7 @@ newton qa report <run-dir>
 
 - Inputs are file-first and replayable.
 - Agents should call the CLI rather than invent ad-hoc workflows.
-- `qa plan-bundle` turns one or more markdown context files into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, risk map, QA estimate, automation candidates, QA run tracker, and manifest.
+- `qa plan-bundle` turns one or more markdown context files into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, PRD baseline risk map, QA estimate, automation candidates, QA run tracker, and manifest.
 - `qa tracker-update` updates one generated QA run tracker checklist item plus the selected environment status.
 - `qa tracker-update-from-run` maps a completed `qa run` result onto one tracker item and records the run report path in notes.
 - `qa bug-draft` reads the first failed checklist item from a QA run tracker and writes `bug-ticket-draft.md`.

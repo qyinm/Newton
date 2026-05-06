@@ -70,6 +70,9 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     risk_map = (bundle_dir / "risk-map.md").read_text()
     assert "# Risk Map: Login" in risk_map
     assert "| functional | P0 | Login flow blocks core user access |" in risk_map
+    for category in ["edge case", "network failure", "permission/role", "policy conflict", "regression"]:
+        assert f"| {category} |" in risk_map
+    assert "Source: generated PRD baseline risks" in risk_map
 
     estimate = (bundle_dir / "qa-estimate.md").read_text()
     assert "# QA Estimate: Login" in estimate
