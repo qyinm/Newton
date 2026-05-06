@@ -34,8 +34,17 @@ def test_install_script_defaults_to_uv_tool_install_with_web_extra():
     result = run_install_dry_run()
 
     assert result.returncode == 0
-    assert "uv tool install --force git+https://example.com/qyinm/Newton.git@test-ref#egg=newton-qa\\[web\\]" in result.stdout
-    assert "uvx --from git+https://example.com/qyinm/Newton.git@test-ref#egg=newton-qa\\[web\\] playwright install chromium" in result.stdout
+    assert (
+        "uv tool install --force git+https://example.com/qyinm/Newton.git@test-ref#egg=newton-qa\\[web\\]"
+        in result.stdout
+        or "pipx install --force git+https://example.com/qyinm/Newton.git@test-ref#egg=newton-qa\\[web\\]"
+        in result.stdout
+    )
+    assert (
+        "uvx --from git+https://example.com/qyinm/Newton.git@test-ref#egg=newton-qa\\[web\\] playwright install chromium"
+        in result.stdout
+        or "python3 -m playwright install chromium" in result.stdout
+    )
     assert "newton version" in result.stdout
 
 

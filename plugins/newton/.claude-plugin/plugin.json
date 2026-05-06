@@ -1,0 +1,9 @@
+{
+  "name": "newton",
+  "description": "Newton QA CLI wrapper for Claude Code",
+  "version": "0.1.0",
+  "author": {
+    "name": "qyinm"
+  },
+  "commands": "./commands/"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "newton",
+  "owner": {
+    "name": "qyinm"
+  },
+  "metadata": {
+    "description": "Newton QA Claude Code plugin marketplace"
+  },
+  "plugins": [
+    {
+      "name": "newton",
+      "source": "./plugins/newton",
+      "description": "Newton QA CLI wrapper for Claude Code",
+      "version": "0.1.0",
+      "category": "testing",
+      "tags": ["qa", "playwright", "agent-native"]
+    }
+  ]
+}

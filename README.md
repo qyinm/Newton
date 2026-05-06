@@ -17,6 +17,27 @@ The installer uses `uv tool install` when `uv` is available, falls back to `pipx
 curl -fsSL https://raw.githubusercontent.com/qyinm/Newton/main/scripts/install.sh | bash -s -- --no-web
 ```
 
+## Claude Code Plugin
+
+Newton also ships a thin Claude Code plugin wrapper around the `newton` CLI. Add this repository as a Claude Code plugin marketplace, then install the `newton` plugin:
+
+```bash
+claude plugin marketplace add qyinm/Newton
+claude plugin install newton@newton
+```
+
+Inside Claude Code, use:
+
+```text
+/newton-setup
+/newton-dogfood
+/newton-plan
+/newton-run
+/newton-bug-draft
+```
+
+If your Claude Code build expects in-session slash commands for plugin management, use the same arguments with `/plugin marketplace add qyinm/Newton` and `/plugin install newton@newton`.
+
 For local development from this checkout:
 
 ```bash
