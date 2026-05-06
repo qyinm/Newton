@@ -15,6 +15,7 @@ Newton exposes a stable CLI contract for agent runtimes and humans alike.
 ```bash
 newton qa plan-bundle <context.md> [--source <extra.md>]... [--out <dir>]
 newton qa bundle-validate <bundle-dir>
+newton qa bundle-review <bundle-dir> [--agent <template|codex|claude>]
 newton qa tracker-update <qa-run-tracker.md> --item <n> --env <dev|stg|prod> --status <status> [--notes <text>]
 newton qa tracker-update-from-run <qa-run-tracker.md> --item <n> --env <dev|stg|prod> --run <run-dir>
 newton qa bug-draft <qa-run-tracker.md> [--out <bug-ticket-draft.md>]
@@ -31,6 +32,7 @@ newton qa report <run-dir>
 - Agents should call the CLI rather than invent ad-hoc workflows.
 - `qa plan-bundle` turns one or more markdown context files into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, PRD baseline risk map, QA estimate, automation candidates, QA run tracker, and manifest.
 - `qa bundle-validate` deterministically checks a planning bundle's required files, manifest paths, item counts, and baseline risks before agent/CI handoff.
+- `qa bundle-review` optionally asks `template`, Codex, or Claude for advisory QA quality feedback and writes validated review JSON/Markdown artifacts. Default external review commands are constrained to read-only/no-tool mode; custom agent commands are an explicit escape hatch.
 - `qa tracker-update` updates one generated QA run tracker checklist item plus the selected environment status.
 - `qa tracker-update-from-run` maps a completed `qa run` result onto one tracker item and records the run report path in notes.
 - `qa bug-draft` reads the first failed checklist item from a QA run tracker and writes `bug-ticket-draft.md`.

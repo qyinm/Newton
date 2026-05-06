@@ -7,6 +7,7 @@ import typer
 from newton import __version__
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
 from newton.bug_draft import BugDraftError, write_bug_ticket_draft
+from newton.bundle_review import BundleReviewError, review_planning_bundle
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
@@ -120,6 +121,29 @@ def qa_bundle_validate(bundle_dir: Path) -> None:
     typer.echo(f"checklist_items: {result.checklist_items}")
     typer.echo(f"test_cases: {result.test_cases}")
     typer.echo(f"tracker_items: {result.tracker_items}")
+
+
+@qa_app.command("bundle-review")
+def qa_bundle_review(
+    bundle_dir: Path,
+    agent: str = typer.Option("template", "--agent", help="Review agent: template, codex, or claude"),
+    agent_command: str | None = typer.Option(
+        None,
+        "--agent-command",
+        help="Override agent command; prompt is sent on stdin",
+        hidden=True,
+    ),
+) -> None:
+    """Write an advisory QA planning bundle review."""
+    try:
+        result = review_planning_bundle(bundle_dir, agent=agent, command=agent_command)
+    except BundleReviewError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"review_json: {result.review_json_path}")
+    typer.echo(f"review_markdown: {result.review_markdown_path}")
+    typer.echo(f"score: {result.score}")
+    typer.echo(f"verdict: {result.verdict}")
 
 
 @qa_app.command("bug-draft")

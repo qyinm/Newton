@@ -44,7 +44,7 @@ The bundle is intentionally small and deterministic:
 
 It does not call Codex, Claude, or any external agent.
 
-## Bundle validation
+## Bundle validation and review
 
 Validate a planning bundle before using it as a handoff artifact:
 
@@ -68,6 +68,15 @@ checklist_items: 5
 test_cases: 5
 tracker_items: 5
 ```
+
+After structural validation passes, generate an optional advisory review:
+
+```bash
+newton qa bundle-review qa/plans/login --agent template
+newton qa bundle-review qa/plans/login --agent codex
+```
+
+`bundle-review` is not a pass/fail gate. It writes `bundle-review.<agent>.json` and `bundle-review.<agent>.md` next to the bundle. Agent-backed reviews also preserve `bundle-review.<agent>.prompt.txt` and `bundle-review.<agent>.raw.txt`. Default external review commands are constrained (`codex exec --sandbox read-only -`, `claude -p --tools ""`); custom `--agent-command` is an explicit escape hatch. Newton validates only the review JSON shape (`score`, `verdict`, and findings); the semantic feedback remains advisory.
 
 ## Tracker updates and bug ticket drafts
 

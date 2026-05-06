@@ -78,6 +78,24 @@ test_cases: 5
 tracker_items: 5
 ```
 
+Optionally request an advisory QA review. `template` is deterministic; `codex` and `claude` use an external agent and preserve prompt/raw output next to the review artifacts. Default external review commands are constrained (`codex` read-only sandbox, `claude` tools disabled); `--agent-command` is an explicit override for tests or custom setups:
+
+```bash
+newton qa bundle-review qa/plans/login --agent template
+newton qa bundle-review qa/plans/login --agent codex
+```
+
+Outputs:
+
+```text
+qa/plans/login/bundle-review.template.json
+qa/plans/login/bundle-review.template.md
+qa/plans/login/bundle-review.codex.prompt.txt
+qa/plans/login/bundle-review.codex.raw.txt
+qa/plans/login/bundle-review.codex.json
+qa/plans/login/bundle-review.codex.md
+```
+
 ## Plan a Scenario
 
 Generate a scenario draft from markdown product/ticket context. The default `template` agent is deterministic; `codex` and `claude` use the same external-agent YAML contract:
