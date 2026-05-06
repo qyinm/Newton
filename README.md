@@ -28,6 +28,7 @@ Outputs:
 ```text
 qa/plans/login/qa-scope.md
 qa/plans/login/checklist.md
+qa/plans/login/test-cases.csv
 qa/plans/login/risk-map.md
 qa/plans/login/qa-estimate.md
 qa/plans/login/automation-candidates.md

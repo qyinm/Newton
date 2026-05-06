@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -16,6 +17,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     expected_files = {
         "qa-scope.md",
         "checklist.md",
+        "test-cases.csv",
         "risk-map.md",
         "qa-estimate.md",
         "automation-candidates.md",
@@ -31,6 +33,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
         "artifacts": {
             "qa_scope": str(bundle_dir / "qa-scope.md"),
             "checklist": str(bundle_dir / "checklist.md"),
+            "test_cases": str(bundle_dir / "test-cases.csv"),
             "risk_map": str(bundle_dir / "risk-map.md"),
             "qa_estimate": str(bundle_dir / "qa-estimate.md"),
             "automation_candidates": str(bundle_dir / "automation-candidates.md"),
@@ -46,6 +49,22 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     assert "# QA Checklist: Login" in checklist
     assert "- [ ] User can open login page" in checklist
     assert "- [ ] User sees Dashboard" in checklist
+
+    with (bundle_dir / "test-cases.csv").open(newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+    assert rows[0] == {
+        "ID": "TC-001",
+        "title": "User can open login page",
+        "priority": "P0",
+        "precondition": "Feature context is available and the target environment is reachable.",
+        "steps": "Execute checklist item 1: User can open login page",
+        "expected_result": "User can open login page",
+        "environment": "dev/stg/prod",
+        "risk_category": "functional",
+        "source_reference": "Acceptance criteria item 1",
+    }
+    assert rows[-1]["ID"] == "TC-005"
+    assert rows[-1]["title"] == "User sees Dashboard"
 
     risk_map = (bundle_dir / "risk-map.md").read_text()
     assert "# Risk Map: Login" in risk_map

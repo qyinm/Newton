@@ -98,6 +98,7 @@ def qa_plan_bundle(
     typer.echo(f"bundle: {bundle_dir}")
     typer.echo(f"scope: {bundle_dir / 'qa-scope.md'}")
     typer.echo(f"checklist: {bundle_dir / 'checklist.md'}")
+    typer.echo(f"test_cases: {bundle_dir / 'test-cases.csv'}")
     typer.echo(f"risk_map: {bundle_dir / 'risk-map.md'}")
     typer.echo(f"estimate: {bundle_dir / 'qa-estimate.md'}")
     typer.echo(f"automation_candidates: {bundle_dir / 'automation-candidates.md'}")

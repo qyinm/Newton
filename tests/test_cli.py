@@ -210,11 +210,13 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
 
     assert result.exit_code == 0
     assert f"bundle: {tmp_path / 'login'}" in result.stdout
+    assert f"test_cases: {tmp_path / 'login' / 'test-cases.csv'}" in result.stdout
     assert f"estimate: {tmp_path / 'login' / 'qa-estimate.md'}" in result.stdout
     assert f"automation_candidates: {tmp_path / 'login' / 'automation-candidates.md'}" in result.stdout
     assert f"qa_run_tracker: {tmp_path / 'login' / 'qa-run-tracker.md'}" in result.stdout
     assert (tmp_path / "login" / "qa-scope.md").exists()
     assert (tmp_path / "login" / "checklist.md").exists()
+    assert (tmp_path / "login" / "test-cases.csv").exists()
     assert (tmp_path / "login" / "risk-map.md").exists()
     assert (tmp_path / "login" / "qa-estimate.md").exists()
     assert (tmp_path / "login" / "automation-candidates.md").exists()
@@ -224,6 +226,7 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
     manifest = json.loads((tmp_path / "login" / "manifest.json").read_text())
     assert manifest["plan_id"] == "login"
     assert manifest["input_path"] == "tests/fixtures/inputs/login_ticket.md"
+    assert manifest["artifacts"]["test_cases"] == str(tmp_path / "login" / "test-cases.csv")
     assert manifest["artifacts"]["qa_estimate"] == str(tmp_path / "login" / "qa-estimate.md")
     assert manifest["artifacts"]["automation_candidates"] == str(
         tmp_path / "login" / "automation-candidates.md"

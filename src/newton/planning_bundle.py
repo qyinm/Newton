@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 from pathlib import Path
@@ -24,6 +26,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
 
     qa_scope_path = bundle_dir / "qa-scope.md"
     checklist_path = bundle_dir / "checklist.md"
+    test_cases_path = bundle_dir / "test-cases.csv"
     risk_map_path = bundle_dir / "risk-map.md"
     qa_estimate_path = bundle_dir / "qa-estimate.md"
     automation_candidates_path = bundle_dir / "automation-candidates.md"
@@ -32,6 +35,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
 
     qa_scope_path.write_text(_render_scope(title, summary, input_path))
     checklist_path.write_text(_render_checklist(title, checklist_items))
+    test_cases_path.write_text(_render_test_cases_csv(checklist_items))
     risk_map_path.write_text(_render_risk_map(title))
     qa_estimate_path.write_text(_render_estimate(title, checklist_items, input_path))
     automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
@@ -44,6 +48,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path) -> Path:
                 "artifacts": {
                     "qa_scope": str(qa_scope_path),
                     "checklist": str(checklist_path),
+                    "test_cases": str(test_cases_path),
                     "risk_map": str(risk_map_path),
                     "qa_estimate": str(qa_estimate_path),
                     "automation_candidates": str(automation_candidates_path),
@@ -135,6 +140,38 @@ def _render_checklist(title: str, items: list[str]) -> str:
 
 {checklist}
 """
+
+
+def _render_test_cases_csv(items: list[str]) -> str:
+    output = io.StringIO()
+    fieldnames = [
+        "ID",
+        "title",
+        "priority",
+        "precondition",
+        "steps",
+        "expected_result",
+        "environment",
+        "risk_category",
+        "source_reference",
+    ]
+    writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    for index, item in enumerate(items, start=1):
+        writer.writerow(
+            {
+                "ID": f"TC-{index:03d}",
+                "title": item,
+                "priority": "P0" if index == 1 else "P1",
+                "precondition": "Feature context is available and the target environment is reachable.",
+                "steps": f"Execute checklist item {index}: {item}",
+                "expected_result": item,
+                "environment": "dev/stg/prod",
+                "risk_category": "functional",
+                "source_reference": f"Acceptance criteria item {index}",
+            }
+        )
+    return output.getvalue()
 
 
 def _render_risk_map(title: str) -> str:

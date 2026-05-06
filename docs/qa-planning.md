@@ -18,6 +18,7 @@ Output:
 ```text
 qa/plans/login/qa-scope.md
 qa/plans/login/checklist.md
+qa/plans/login/test-cases.csv
 qa/plans/login/risk-map.md
 qa/plans/login/qa-estimate.md
 qa/plans/login/automation-candidates.md
@@ -29,6 +30,7 @@ The bundle is intentionally small and deterministic:
 
 - `qa-scope.md`: source, goal, in-scope, and out-of-scope summary.
 - `checklist.md`: manual checklist derived from acceptance criteria bullets.
+- `test-cases.csv`: structured test case rows derived from checklist items, with ID, priority, precondition, steps, expected result, environment, risk category, and source reference.
 - `risk-map.md`: one minimal functional P0 risk row.
 - `qa-estimate.md`: deterministic small-effort estimate with checklist count, P0 basis, source input, manual QA time, and assumptions.
 - `automation-candidates.md`: first checklist item recommended for smoke automation; remaining items kept manual for now.
