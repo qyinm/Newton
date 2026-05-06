@@ -299,6 +299,59 @@ def test_qa_tracker_update_updates_generated_tracker_item(tmp_path: Path):
     assert "Environment: stg" in draft_text
 
 
+def test_qa_tracker_update_from_run_links_run_result_to_tracker(tmp_path: Path):
+    bundle = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path / "plans"),
+        ],
+    )
+    run = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "dry-run",
+            "--out",
+            str(tmp_path / "runs"),
+        ],
+    )
+    assert bundle.exit_code == 0
+    assert run.exit_code == 0
+    tracker_path = tmp_path / "plans" / "login" / "qa-run-tracker.md"
+    run_path = next((tmp_path / "runs").glob("run_*"))
+
+    update = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "tracker-update-from-run",
+            str(tracker_path),
+            "--item",
+            "1",
+            "--env",
+            "stg",
+            "--run",
+            str(run_path),
+        ],
+    )
+
+    assert update.exit_code == 0
+    assert f"updated_tracker: {tracker_path}" in update.stdout
+    tracker = tracker_path.read_text()
+    assert "- stg: passed" in tracker
+    assert "- [x] User can open login page" in tracker
+    assert f"report: {run_path / 'qa-report.md'}" in tracker
+
+
 def test_qa_plan_generates_valid_scenario(tmp_path: Path):
     result = CliRunner().invoke(
         app,

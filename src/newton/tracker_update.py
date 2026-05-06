@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 
 class TrackerUpdateError(ValueError):
@@ -42,6 +44,43 @@ def update_tracker_item(
     )
     tracker_path.write_text("\n".join(updated_lines) + "\n")
     return tracker_path
+
+
+def update_tracker_item_from_run(
+    tracker_path: Path,
+    *,
+    item_number: int,
+    env: str,
+    run_path: Path,
+) -> Path:
+    result_path = run_path / "result.json"
+    if not result_path.exists():
+        raise TrackerUpdateError(f"run result not found: {result_path}")
+    try:
+        result = json.loads(result_path.read_text())
+    except json.JSONDecodeError as exc:
+        raise TrackerUpdateError(f"invalid run result JSON: {result_path}") from exc
+
+    status = _tracker_status_from_run_result(result)
+    run_id = str(result.get("run_id") or run_path.name)
+    report_path = run_path / "qa-report.md"
+    notes = f"Run {run_id} {status}; report: {report_path}"
+    return update_tracker_item(
+        tracker_path,
+        item_number=item_number,
+        env=env,
+        status=status,
+        notes=notes,
+    )
+
+
+def _tracker_status_from_run_result(result: dict[str, Any]) -> str:
+    status = str(result.get("status") or "").strip().lower()
+    if status in {"passed", "failed"}:
+        return status
+    if status == "skipped":
+        return "blocked"
+    raise TrackerUpdateError(f"unsupported run result status: {status or '<missing>'}")
 
 
 def _update_environment_status(lines: list[str], env: str, status: str) -> list[str]:

@@ -43,6 +43,10 @@ newton qa tracker-update qa/plans/login/qa-run-tracker.md \
   --env stg \
   --status failed \
   --notes "Dashboard never appears after submit"
+newton qa tracker-update-from-run qa/plans/login/qa-run-tracker.md \
+  --item 1 \
+  --env stg \
+  --run qa/runs/run_123
 newton qa bug-draft qa/plans/login/qa-run-tracker.md
 ```
 

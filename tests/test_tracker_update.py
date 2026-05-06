@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from newton.tracker_update import TrackerUpdateError, update_tracker_item
+from newton.tracker_update import TrackerUpdateError, update_tracker_item, update_tracker_item_from_run
 
 
 TRACKER = """# QA Run Tracker: Login
@@ -47,6 +47,25 @@ def test_update_tracker_item_updates_generated_tracker_block(tmp_path: Path):
     assert "- prod: not run" in updated
     assert "- [ ] User can open login page\n  - env: dev\n  - status: not run\n  - notes:" in updated
     assert "- [x] User sees Dashboard\n  - env: stg\n  - status: failed\n  - notes: Dashboard never appears after submit" in updated
+
+
+def test_update_tracker_item_from_run_maps_result_status_and_links_run(tmp_path: Path):
+    tracker_path = tmp_path / "qa-run-tracker.md"
+    tracker_path.write_text(TRACKER)
+    run_path = tmp_path / "runs" / "run_123"
+    run_path.mkdir(parents=True)
+    (run_path / "result.json").write_text(
+        '{"run_id":"run_123","scenario_id":"web-login-smoke","target_id":"web","platform":"web","status":"passed","steps":[],"evidence":[]}'
+    )
+    (run_path / "qa-report.md").write_text("# report")
+
+    update_tracker_item_from_run(tracker_path, item_number=1, env="stg", run_path=run_path)
+
+    updated = tracker_path.read_text()
+    assert "- stg: passed" in updated
+    assert "- [x] User can open login page\n  - env: stg\n  - status: passed" in updated
+    assert "  - notes: Run run_123 passed; report:" in updated
+    assert str(run_path / "qa-report.md") in updated
 
 
 def test_update_tracker_item_rejects_invalid_status(tmp_path: Path):

@@ -49,7 +49,16 @@ newton qa tracker-update qa/plans/login/qa-run-tracker.md \
   --notes "Dashboard never appears after submit"
 ```
 
-Supported statuses are `not run`, `passed`, `failed`, `blocked`, and `needs retest`. Newton updates the selected checklist item and the matching environment status in place.
+Or link a completed Newton run result to a tracker item:
+
+```bash
+newton qa tracker-update-from-run qa/plans/login/qa-run-tracker.md \
+  --item 1 \
+  --env stg \
+  --run qa/runs/run_123
+```
+
+Supported statuses are `not run`, `passed`, `failed`, `blocked`, and `needs retest`. Newton updates the selected checklist item and the matching environment status in place. `tracker-update-from-run` maps `passed`/`failed` run results to the same tracker status and records the run report path in notes.
 
 After a human or agent marks a checklist item as failed, generate a minimal bug ticket draft:
 
