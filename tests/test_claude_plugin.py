@@ -32,6 +32,7 @@ def test_claude_plugin_manifest_points_at_commands():
     assert manifest["name"] == "newton"
     assert manifest["version"] == "0.1.0"
     assert manifest["commands"] == "./commands/"
+    assert manifest["skills"] == "./skills/"
     assert manifest["description"] == "Newton QA CLI wrapper for Claude Code"
     assert manifest["author"]["name"] == "qyinm"
 
@@ -55,6 +56,31 @@ def test_claude_plugin_commands_wrap_newton_cli():
             assert snippet in text
 
 
+def test_claude_plugin_has_newton_qa_workflow_skill():
+    skill = PLUGIN_ROOT / "skills" / "newton-qa-workflow" / "SKILL.md"
+    text = skill.read_text()
+
+    assert text.startswith("---\n")
+    assert "name: newton-qa-workflow" in text
+    assert "description:" in text
+    for snippet in [
+        "newton qa plan-bundle",
+        "newton qa bundle-validate",
+        "newton qa plan",
+        "newton qa validate",
+        "newton qa run",
+        "newton qa report",
+        "newton qa tracker-update-from-run",
+        "newton qa bug-draft",
+        "input files",
+        "generated artifacts",
+        "run id",
+        "evidence paths",
+        "remaining risk",
+    ]:
+        assert snippet in text
+
+
 def test_readme_documents_claude_plugin_install_path():
     readme = Path("README.md").read_text()
 
@@ -62,3 +88,4 @@ def test_readme_documents_claude_plugin_install_path():
     assert "claude plugin install newton@newton" in readme
     assert "/newton-setup" in readme
     assert "/newton-dogfood" in readme
+    assert "newton-qa-workflow" in readme

@@ -36,6 +36,8 @@ Inside Claude Code, use:
 /newton-bug-draft
 ```
 
+The plugin also includes the `newton-qa-workflow` skill, which routes natural-language QA planning, execution, tracker, and bug-draft requests through the same `newton qa ...` CLI artifact contract.
+
 If your Claude Code build expects in-session slash commands for plugin management, use the same arguments with `/plugin marketplace add qyinm/Newton` and `/plugin install newton@newton`.
 
 For local development from this checkout:
