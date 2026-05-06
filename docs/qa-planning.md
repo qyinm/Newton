@@ -12,10 +12,30 @@ Use `plan-bundle` when you want PRD-style QA planning artifacts rather than an e
 ```bash
 newton qa plan-bundle qa/inputs/login-ticket.md \
   --source qa/inputs/login-policy.md \
+  --agent template \
   --out qa/plans
 ```
 
 The repository includes `qa/inputs/login-ticket.md`, `qa/inputs/login-policy.md`, and the generated `qa/plans/login/` bundle as a checked-in demo. The first path remains the primary ticket/context source used for title and goal extraction. Repeated `--source` paths are merged into checklist and test-case generation, and all source paths are recorded in `manifest.json`.
+
+`--agent template` is the deterministic fallback. It does not call Codex, Claude, or any external agent.
+
+For agent-backed bundle generation, use `--agent codex` or `--agent claude`:
+
+```bash
+newton qa plan-bundle qa/inputs/login-ticket.md \
+  --source qa/inputs/login-policy.md \
+  --agent codex \
+  --out qa/plans
+```
+
+In this mode, the agent drafts the QA planning payload and Newton materializes it into the same artifact set only after the JSON contract and bundle structure validate. Newton also preserves generation provenance:
+
+```text
+qa/plans/login/bundle-generation.codex.prompt.txt
+qa/plans/login/bundle-generation.codex.raw.txt
+qa/plans/login/bundle-generation.codex.json
+```
 
 Output:
 
@@ -30,7 +50,7 @@ qa/plans/login/qa-run-tracker.md
 qa/plans/login/manifest.json
 ```
 
-The bundle is intentionally small and deterministic:
+The template bundle is intentionally small and deterministic:
 
 - `qa-scope.md`: source, goal, in-scope, and out-of-scope summary.
 - `checklist.md`: manual checklist derived from acceptance criteria bullets.
@@ -41,7 +61,7 @@ The bundle is intentionally small and deterministic:
 - `qa-run-tracker.md`: initial dev/stg/prod and per-checklist status tracker, all set to `not run`.
 - `manifest.json`: machine-readable paths for the bundle artifacts.
 
-It does not call Codex, Claude, or any external agent.
+Agent-backed generation is separate from advisory `bundle-review`: generation creates the bundle, while review only comments on an existing bundle.
 
 ## Bundle validation and review
 

@@ -510,6 +510,116 @@ def test_qa_tracker_update_from_run_links_run_result_to_tracker(tmp_path: Path):
     assert f"report: {run_path / 'qa-report.md'}" in tracker
 
 
+def test_qa_plan_bundle_agent_codex_generates_valid_bundle_with_provenance(tmp_path: Path):
+    fake_agent = tmp_path / "fake-bundle-agent.py"
+    fake_agent.write_text(
+        "import json, sys\n"
+        "prompt = sys.stdin.read()\n"
+        "assert 'Generate a Newton QA planning bundle' in prompt\n"
+        "assert 'qa/inputs/login-ticket.md' in prompt\n"
+        "payload = {\n"
+        "  'plan_id': 'login',\n"
+        "  'title': 'Login',\n"
+        "  'qa_scope': {\n"
+        "    'goal': 'Users can securely log in with email and password.',\n"
+        "    'in_scope': ['Successful login', 'Secure login policy feedback'],\n"
+        "    'out_of_scope': ['Cross-browser matrix']\n"
+        "  },\n"
+        "  'checklist': [\n"
+        "    {'title': 'User can open login page', 'risk_category': 'functional', 'priority': 'P0', 'source_reference': 'login-ticket.md'},\n"
+        "    {'title': 'Error message does not expose whether email exists', 'risk_category': 'policy conflict', 'priority': 'P1', 'source_reference': 'login-policy.md'}\n"
+        "  ],\n"
+        "  'test_cases': [\n"
+        "    {'id': 'TC-001', 'title': 'User can open login page', 'priority': 'P0', 'precondition': 'Staging is reachable', 'steps': 'Open /login', 'expected_result': 'Login page is visible', 'environment': 'dev/stg/prod', 'risk_category': 'functional', 'source_reference': 'login-ticket.md'},\n"
+        "    {'id': 'TC-002', 'title': 'Error message does not expose whether email exists', 'priority': 'P1', 'precondition': 'Invalid login test account exists', 'steps': 'Submit unknown email and wrong password', 'expected_result': 'Generic error is shown', 'environment': 'dev/stg/prod', 'risk_category': 'policy conflict', 'source_reference': 'login-policy.md'}\n"
+        "  ],\n"
+        "  'risk_map': [\n"
+        "    {'area': 'functional', 'priority': 'P0', 'rationale': 'Login blocks account access'},\n"
+        "    {'area': 'edge case', 'priority': 'P1', 'rationale': 'Empty and invalid credentials can break form handling'},\n"
+        "    {'area': 'network failure', 'priority': 'P1', 'rationale': 'Timeouts need recoverable feedback'},\n"
+        "    {'area': 'permission/role', 'priority': 'P1', 'rationale': 'Locked users need correct access handling'},\n"
+        "    {'area': 'policy conflict', 'priority': 'P1', 'rationale': 'Error copy must not reveal account existence'},\n"
+        "    {'area': 'regression', 'priority': 'P1', 'rationale': 'Existing login smoke can regress'}\n"
+        "  ],\n"
+        "  'qa_estimate': {\n"
+        "    'size': 'S',\n"
+        "    'reasoning': ['2 checklist items', 'Policy-sensitive error copy'],\n"
+        "    'manual_qa_time': ['Happy path smoke: 15 min', 'Negative/error cases: 20 min'],\n"
+        "    'assumptions': ['Staging environment is reachable']\n"
+        "  },\n"
+        "  'automation_candidates': [\n"
+        "    {'title': 'User can open login page', 'recommendation': 'Recommended', 'reason': 'Stable smoke path with clear pass/fail signal.'},\n"
+        "    {'title': 'Error message does not expose whether email exists', 'recommendation': 'Manual For Now', 'reason': 'Copy and policy details should be reviewed manually first.'}\n"
+        "  ]\n"
+        "}\n"
+        "print(json.dumps(payload))\n"
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "qa/inputs/login-ticket.md",
+            "--source",
+            "qa/inputs/login-policy.md",
+            "--agent",
+            "codex",
+            "--agent-command",
+            f"python {fake_agent}",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    bundle_dir = tmp_path / "login"
+    assert f"bundle: {bundle_dir}" in result.stdout
+    assert (bundle_dir / "bundle-generation.codex.prompt.txt").exists()
+    assert (bundle_dir / "bundle-generation.codex.raw.txt").exists()
+    assert (bundle_dir / "bundle-generation.codex.json").exists()
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["agent"] == "codex"
+    assert manifest["generation"]["validation_status"] == "accepted"
+    assert manifest["generation"]["prompt_path"] == str(bundle_dir / "bundle-generation.codex.prompt.txt")
+    assert "Error message does not expose whether email exists" in (bundle_dir / "checklist.md").read_text()
+
+    validate = CliRunner().invoke(app, ["qa", "bundle-validate", str(bundle_dir)])
+
+    assert validate.exit_code == 0
+    assert "valid_bundle: login" in validate.stdout
+    assert "checklist_items: 2" in validate.stdout
+    assert "test_cases: 2" in validate.stdout
+
+
+def test_qa_plan_bundle_agent_rejects_invalid_output_and_preserves_raw(tmp_path: Path):
+    fake_agent = tmp_path / "fake-invalid-bundle-agent.py"
+    fake_agent.write_text("print('not json')\n")
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "qa/inputs/login-ticket.md",
+            "--agent",
+            "codex",
+            "--agent-command",
+            f"python {fake_agent}",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    combined_output = result.stdout + result.stderr
+    assert "agent planning bundle output did not validate" in combined_output
+    bundle_dir = tmp_path / "login"
+    assert (bundle_dir / "bundle-generation.codex.prompt.txt").exists()
+    assert (bundle_dir / "bundle-generation.codex.raw.txt").read_text().strip() == "not json"
+    assert not (bundle_dir / "manifest.json").exists()
+
+
 def test_qa_plan_generates_valid_scenario(tmp_path: Path):
     result = CliRunner().invoke(
         app,

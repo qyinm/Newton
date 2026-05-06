@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 
 from newton import __version__
+from newton.agent_planning_bundle import AgentPlanningBundleError, generate_planning_bundle_with_agent
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
 from newton.bug_draft import BugDraftError, write_bug_ticket_draft
 from newton.bundle_review import BundleReviewError, review_planning_bundle
@@ -90,12 +91,28 @@ def qa_plan(
 def qa_plan_bundle(
     path: Path,
     source: list[Path] = typer.Option([], "--source", help="Additional markdown source file to merge into the bundle"),
+    agent: str = typer.Option("template", "--agent", help="Planning bundle agent: template, codex, or claude"),
+    agent_command: str | None = typer.Option(
+        None,
+        "--agent-command",
+        help="Override agent command; prompt is sent on stdin",
+        hidden=True,
+    ),
     out: Path = typer.Option(Path("qa/plans"), "--out", help="Planning bundle output directory"),
 ) -> None:
     """Generate a minimal QA planning bundle from markdown context."""
     try:
-        bundle_dir = generate_planning_bundle(path, out_dir=out, source_paths=source)
-    except PlanningBundleError as exc:
+        if agent == "template":
+            bundle_dir = generate_planning_bundle(path, out_dir=out, source_paths=source)
+        else:
+            bundle_dir = generate_planning_bundle_with_agent(
+                path,
+                out_dir=out,
+                source_paths=source,
+                agent=agent,
+                command=agent_command,
+            )
+    except (PlanningBundleError, AgentPlanningBundleError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 
     typer.echo(f"bundle: {bundle_dir}")

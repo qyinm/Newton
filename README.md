@@ -22,12 +22,30 @@ Generate a minimal PRD-style planning bundle from markdown product/ticket contex
 ```bash
 newton qa plan-bundle qa/inputs/login-ticket.md \
   --source qa/inputs/login-policy.md \
+  --agent template \
   --out qa/plans
 ```
 
 The repository includes this demo input pair and the checked-in generated bundle under `qa/plans/login/` so agents and CI can validate the PRD planning contract without regenerating fixtures first.
 
-Use `--source` to merge extra markdown sources such as policy notes, staging notes, or design annotations into the same checklist/test-case bundle. `risk-map.md` includes baseline PRD risk categories: edge case, network failure, permission/role, policy conflict, and regression.
+Use `--source` to merge extra markdown sources such as policy notes, staging notes, or design annotations into the same checklist/test-case bundle. `--agent template` is the deterministic fallback and does not call an external agent. `risk-map.md` includes baseline PRD risk categories: edge case, network failure, permission/role, policy conflict, and regression.
+
+To let an external agent draft the bundle while Newton validates and materializes the artifact contract, use `--agent codex` or `--agent claude`:
+
+```bash
+newton qa plan-bundle qa/inputs/login-ticket.md \
+  --source qa/inputs/login-policy.md \
+  --agent codex \
+  --out qa/plans
+```
+
+Agent-backed bundle generation preserves the prompt, raw stdout, and accepted JSON next to the generated artifacts:
+
+```text
+qa/plans/login/bundle-generation.codex.prompt.txt
+qa/plans/login/bundle-generation.codex.raw.txt
+qa/plans/login/bundle-generation.codex.json
+```
 
 Outputs:
 
@@ -63,7 +81,7 @@ Output:
 qa/plans/login/bug-ticket-draft.md
 ```
 
-The bundle is deterministic and does not call an external agent. Validate the generated artifact contract before handing the bundle to another agent or CI job:
+Validate the generated artifact contract before handing the bundle to another agent or CI job:
 
 ```bash
 newton qa bundle-validate qa/plans/login
@@ -79,7 +97,7 @@ test_cases: 8
 tracker_items: 8
 ```
 
-Optionally request an advisory QA review. `template` is deterministic; `codex` and `claude` use an external agent and preserve prompt/raw output next to the review artifacts. Default external review commands are constrained (`codex` read-only sandbox, `claude` tools disabled); `--agent-command` is an explicit override for tests or custom setups:
+Optionally request an advisory QA review after generation. `bundle-review` does not generate or edit the bundle: `template` is deterministic; `codex` and `claude` use an external agent and preserve prompt/raw output next to the review artifacts. Default external review commands are constrained (`codex` read-only sandbox, `claude` tools disabled); `--agent-command` is an explicit override for tests or custom setups:
 
 ```bash
 newton qa bundle-review qa/plans/login --agent template
