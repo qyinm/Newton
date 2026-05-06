@@ -10,6 +10,7 @@ from newton.bug_draft import BugDraftError, write_bug_ticket_draft
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
+from newton.planning_bundle_validation import PlanningBundleValidationError, validate_planning_bundle
 from newton.run_index import read_run_index
 from newton.runner import run_scenario
 from newton.scenario_loader import ScenarioLoadError, load_scenario
@@ -104,6 +105,21 @@ def qa_plan_bundle(
     typer.echo(f"estimate: {bundle_dir / 'qa-estimate.md'}")
     typer.echo(f"automation_candidates: {bundle_dir / 'automation-candidates.md'}")
     typer.echo(f"qa_run_tracker: {bundle_dir / 'qa-run-tracker.md'}")
+
+
+@qa_app.command("bundle-validate")
+def qa_bundle_validate(bundle_dir: Path) -> None:
+    """Validate a QA planning bundle artifact contract."""
+    try:
+        result = validate_planning_bundle(bundle_dir)
+    except PlanningBundleValidationError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"valid_bundle: {result.plan_id}")
+    typer.echo(f"artifacts: {result.artifact_count}")
+    typer.echo(f"checklist_items: {result.checklist_items}")
+    typer.echo(f"test_cases: {result.test_cases}")
+    typer.echo(f"tracker_items: {result.tracker_items}")
 
 
 @qa_app.command("bug-draft")

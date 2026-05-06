@@ -44,6 +44,31 @@ The bundle is intentionally small and deterministic:
 
 It does not call Codex, Claude, or any external agent.
 
+## Bundle validation
+
+Validate a planning bundle before using it as a handoff artifact:
+
+```bash
+newton qa bundle-validate qa/plans/login
+```
+
+Newton deterministically checks:
+
+- required artifacts and manifest paths exist
+- checklist item count matches `test-cases.csv` rows
+- checklist item count matches `qa-run-tracker.md` items
+- `risk-map.md` contains baseline risks: functional, edge case, network failure, permission/role, policy conflict, and regression
+
+Successful output:
+
+```text
+valid_bundle: login
+artifacts: 8
+checklist_items: 5
+test_cases: 5
+tracker_items: 5
+```
+
 ## Tracker updates and bug ticket drafts
 
 Update a generated `qa-run-tracker.md` checklist item from the CLI:

@@ -62,7 +62,21 @@ Output:
 qa/plans/login/bug-ticket-draft.md
 ```
 
-The bundle is deterministic and does not call an external agent.
+The bundle is deterministic and does not call an external agent. Validate the generated artifact contract before handing the bundle to another agent or CI job:
+
+```bash
+newton qa bundle-validate qa/plans/login
+```
+
+Expected:
+
+```text
+valid_bundle: login
+artifacts: 8
+checklist_items: 5
+test_cases: 5
+tracker_items: 5
+```
 
 ## Plan a Scenario
 

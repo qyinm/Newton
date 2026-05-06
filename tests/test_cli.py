@@ -273,6 +273,51 @@ Acceptance criteria:
     ).read_text()
 
 
+def test_qa_bundle_validate_accepts_generated_bundle(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    bundle_dir = tmp_path / "login"
+
+    validate = CliRunner().invoke(app, ["qa", "bundle-validate", str(bundle_dir)])
+
+    assert validate.exit_code == 0
+    assert "valid_bundle: login" in validate.stdout
+    assert "artifacts: 8" in validate.stdout
+    assert "checklist_items: 5" in validate.stdout
+    assert "test_cases: 5" in validate.stdout
+    assert "tracker_items: 5" in validate.stdout
+
+
+def test_qa_bundle_validate_rejects_invalid_bundle(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    bundle_dir = tmp_path / "login"
+    (bundle_dir / "qa-estimate.md").unlink()
+
+    validate = CliRunner().invoke(app, ["qa", "bundle-validate", str(bundle_dir)])
+
+    assert validate.exit_code != 0
+    assert "missing artifact: qa-estimate.md" in validate.stdout + validate.stderr
+
+
 def test_qa_bug_draft_generates_bug_ticket_from_failed_tracker_item(tmp_path: Path):
     tracker_path = tmp_path / "qa-run-tracker.md"
     tracker_path.write_text(
