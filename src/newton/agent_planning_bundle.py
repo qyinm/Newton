@@ -38,13 +38,18 @@ def generate_planning_bundle_with_agent(
     bundle_dir = out_dir / plan_id
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
-    prompt = build_planning_bundle_prompt(markdown_by_path)
+    prompt = build_planning_bundle_prompt(markdown_by_path, expected_plan_id=plan_id)
     prompt_path = bundle_dir / f"bundle-generation.{normalized_agent}.prompt.txt"
     raw_output_path = bundle_dir / f"bundle-generation.{normalized_agent}.raw.txt"
     accepted_json_path = bundle_dir / f"bundle-generation.{normalized_agent}.json"
     prompt_path.write_text(prompt)
 
-    argv, prompt_via_stdin = _agent_command(normalized_agent, command)
+    codex_last_message_path = (
+        bundle_dir / f"bundle-generation.{normalized_agent}.last-message.txt"
+        if normalized_agent == "codex" and command is None
+        else None
+    )
+    argv, prompt_via_stdin = _agent_command(normalized_agent, command, codex_last_message_path)
     try:
         completed = run(
             argv,
@@ -64,9 +69,15 @@ def generate_planning_bundle_with_agent(
             f"{normalized_agent} planning bundle command failed; raw output saved to {raw_output_path}"
         ) from exc
 
-    raw_output_path.write_text(completed.stdout)
+    raw_output = (completed.stdout or "") + (completed.stderr or "")
+    raw_output_path.write_text(raw_output)
+    parse_output = (
+        codex_last_message_path.read_text()
+        if codex_last_message_path is not None and codex_last_message_path.exists()
+        else completed.stdout
+    )
     try:
-        payload = _validate_agent_bundle_payload(_extract_json(completed.stdout), expected_plan_id=plan_id)
+        payload = _validate_agent_bundle_payload(_extract_json(parse_output), expected_plan_id=plan_id)
     except AgentPlanningBundleError as exc:
         raise AgentPlanningBundleError(
             f"agent planning bundle output did not validate; raw output saved to {raw_output_path}: {exc}"
@@ -92,7 +103,7 @@ def generate_planning_bundle_with_agent(
     return bundle_dir
 
 
-def build_planning_bundle_prompt(markdown_by_path: list[tuple[Path, str]]) -> str:
+def build_planning_bundle_prompt(markdown_by_path: list[tuple[Path, str]], *, expected_plan_id: str) -> str:
     sources = "\n\n".join(
         f"## Source: {path}\n\n```markdown\n{markdown}\n```" for path, markdown in markdown_by_path
     )
@@ -130,7 +141,7 @@ Output only JSON with this exact high-level shape:
 }}
 
 Rules:
-- Use the primary source title as plan_id basis.
+- Set "plan_id" to exactly "{expected_plan_id}".
 - Keep checklist and test_cases counts equal.
 - Include risk_map rows for at least: functional, edge case, network failure, permission/role, policy conflict, regression.
 - Do not include markdown fences around the JSON.
@@ -150,13 +161,21 @@ def _read_sources(paths: list[Path]) -> list[tuple[Path, str]]:
     return sources
 
 
-def _agent_command(agent: str, command: Sequence[str] | str | None) -> tuple[list[str], bool]:
+def _agent_command(
+    agent: str,
+    command: Sequence[str] | str | None,
+    codex_last_message_path: Path | None = None,
+) -> tuple[list[str], bool]:
     if command is not None:
         if isinstance(command, str):
             return shlex.split(command), True
         return list(command), True
     if agent == "codex":
-        return ["codex", "exec", "--sandbox", "read-only", "-"], True
+        argv = ["codex", "exec", "--sandbox", "read-only"]
+        if codex_last_message_path is not None:
+            argv.extend(["--output-last-message", str(codex_last_message_path)])
+        argv.append("-")
+        return argv, True
     if agent == "claude":
         return ["claude", "-p", "--tools", ""], True
     raise AgentPlanningBundleError(f"unsupported planning bundle agent: {agent}")
