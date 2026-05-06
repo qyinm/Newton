@@ -39,7 +39,7 @@ newton qa plan-bundle qa/inputs/login-ticket.md \
   --out qa/plans
 ```
 
-Agent-backed bundle generation preserves the prompt, raw stdout, and accepted JSON next to the generated artifacts:
+Agent-backed bundle generation preserves the prompt, raw stdout, and accepted JSON next to the generated artifacts. The agent must include `qa_estimate.evidence_factors`; each factor cites a provided source path or filename, and Newton rejects the bundle before writing `manifest.json` if the estimate lacks source-linked evidence. Newton verifies source linkage structurally, not semantic truth.
 
 ```text
 qa/plans/login/bundle-generation.codex.prompt.txt

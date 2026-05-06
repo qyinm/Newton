@@ -48,6 +48,14 @@ def _valid_payload() -> dict[str, object]:
             "reasoning": ["Small login bundle"],
             "manual_qa_time": ["30 minutes"],
             "assumptions": ["Staging is reachable"],
+            "evidence_factors": [
+                {
+                    "factor": "checklist_items",
+                    "value": "1 checklist item",
+                    "evidence": "Login ticket has one core login check.",
+                    "source_reference": "login-ticket.md",
+                }
+            ],
         },
         "automation_candidates": [
             {

@@ -77,7 +77,9 @@ def generate_planning_bundle_with_agent(
         else completed.stdout
     )
     try:
-        payload = _validate_agent_bundle_payload(_extract_json(parse_output), expected_plan_id=plan_id)
+        payload = _validate_agent_bundle_payload(
+            _extract_json(parse_output), expected_plan_id=plan_id, source_paths=all_source_paths
+        )
     except AgentPlanningBundleError as exc:
         raise AgentPlanningBundleError(
             f"agent planning bundle output did not validate; raw output saved to {raw_output_path}: {exc}"
@@ -133,7 +135,10 @@ Output only JSON with this exact high-level shape:
     "size": "S|M|L",
     "reasoning": ["..."],
     "manual_qa_time": ["..."],
-    "assumptions": ["..."]
+    "assumptions": ["..."],
+    "evidence_factors": [
+      {{"factor": "screens|policy_rules|roles|states|environments|integrations|regression|data_setup|retest_count|checklist_items", "value": "...", "evidence": "...", "source_reference": "provided source path or filename"}}
+    ]
   }},
   "automation_candidates": [
     {{"title": "...", "recommendation": "Recommended|Manual For Now", "reason": "..."}}
@@ -144,6 +149,8 @@ Rules:
 - Set "plan_id" to exactly "{expected_plan_id}".
 - Keep checklist and test_cases counts equal.
 - Include risk_map rows for at least: functional, edge case, network failure, permission/role, policy conflict, regression.
+- qa_estimate.evidence_factors must cite provided source paths or filenames in source_reference.
+- Use evidence_factors for concrete estimate drivers: screens, policy rules, roles, states, environments, integrations, regression, data setup, and retest count.
 - Do not include markdown fences around the JSON.
 
 Sources:
@@ -190,7 +197,9 @@ def _extract_json(output: str) -> object:
         raise AgentPlanningBundleError(f"invalid planning bundle JSON: {exc.msg}") from exc
 
 
-def _validate_agent_bundle_payload(payload: object, *, expected_plan_id: str) -> dict[str, object]:
+def _validate_agent_bundle_payload(
+    payload: object, *, expected_plan_id: str, source_paths: list[Path]
+) -> dict[str, object]:
     if not isinstance(payload, dict):
         raise AgentPlanningBundleError("planning bundle output must be a JSON object")
     plan_id = _required_str(payload, "plan_id")
@@ -201,7 +210,7 @@ def _validate_agent_bundle_payload(payload: object, *, expected_plan_id: str) ->
     checklist = _required_list(payload, "checklist")
     test_cases = _required_list(payload, "test_cases")
     risk_map = _required_list(payload, "risk_map")
-    _validate_estimate(payload.get("qa_estimate"))
+    _validate_estimate(payload.get("qa_estimate"), source_paths=source_paths)
     automation_candidates = _required_list(payload, "automation_candidates")
     if len(checklist) != len(test_cases):
         raise AgentPlanningBundleError("checklist and test_cases counts must match")
@@ -240,7 +249,7 @@ def _validate_scope(scope: object) -> None:
             raise AgentPlanningBundleError(f"qa_scope.{key} must be a list of non-empty strings")
 
 
-def _validate_estimate(estimate: object) -> None:
+def _validate_estimate(estimate: object, *, source_paths: list[Path]) -> None:
     if not isinstance(estimate, dict):
         raise AgentPlanningBundleError("qa_estimate must be an object")
     _required_str(estimate, "size")
@@ -248,6 +257,22 @@ def _validate_estimate(estimate: object) -> None:
         values = estimate.get(key)
         if not isinstance(values, list) or not all(isinstance(value, str) and value for value in values):
             raise AgentPlanningBundleError(f"qa_estimate.{key} must be a list of non-empty strings")
+    evidence_factors = estimate.get("evidence_factors")
+    if not isinstance(evidence_factors, list) or not evidence_factors:
+        raise AgentPlanningBundleError("qa_estimate.evidence_factors must be a non-empty list")
+    for index, factor in enumerate(evidence_factors, start=1):
+        label = f"qa_estimate.evidence_factors[{index}]"
+        _validate_object_fields(factor, ["factor", "value", "evidence", "source_reference"], label)
+        assert isinstance(factor, dict)
+        source_reference = str(factor["source_reference"])
+        if not _source_reference_matches(source_reference, source_paths):
+            raise AgentPlanningBundleError(
+                f"{label}.source_reference must cite one of the provided source paths or filenames"
+            )
+
+
+def _source_reference_matches(source_reference: str, source_paths: list[Path]) -> bool:
+    return any(str(path) in source_reference or path.name in source_reference for path in source_paths)
 
 
 def _required_str(payload: dict[str, object], key: str) -> str:
@@ -421,6 +446,17 @@ def _render_estimate(title: str, estimate: dict[str, object]) -> str:
     reasoning = "\n".join(f"- {item}" for item in estimate["reasoning"])
     manual_qa_time = "\n".join(f"- {item}" for item in estimate["manual_qa_time"])
     assumptions = "\n".join(f"- {item}" for item in estimate["assumptions"])
+    evidence_rows = []
+    for factor in estimate["evidence_factors"]:
+        assert isinstance(factor, dict)
+        evidence_rows.append(
+            "| {factor} | {value} | {evidence} | {source} |".format(
+                factor=_escape_table_cell(str(factor["factor"])),
+                value=_escape_table_cell(str(factor["value"])),
+                evidence=_escape_table_cell(str(factor["evidence"])),
+                source=_escape_table_cell(str(factor["source_reference"])),
+            )
+        )
     return f"""# QA Estimate: {title}
 
 ## Summary
@@ -431,6 +467,12 @@ Estimated QA effort: {estimate['size']}
 
 {reasoning}
 
+## Evidence Factors
+
+| Factor | Value | Evidence | Source |
+| --- | --- | --- | --- |
+{chr(10).join(evidence_rows)}
+
 ## Suggested Manual QA Time
 
 {manual_qa_time}
@@ -439,6 +481,10 @@ Estimated QA effort: {estimate['size']}
 
 {assumptions}
 """
+
+
+def _escape_table_cell(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", " ")
 
 
 def _render_automation_candidates(title: str, candidates: list[object]) -> str:

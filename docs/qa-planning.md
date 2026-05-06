@@ -29,7 +29,7 @@ newton qa plan-bundle qa/inputs/login-ticket.md \
   --out qa/plans
 ```
 
-In this mode, the agent drafts the QA planning payload and Newton materializes it into the same artifact set only after the JSON contract and bundle structure validate. Newton also preserves generation provenance:
+In this mode, the agent drafts the QA planning payload and Newton materializes it into the same artifact set only after the JSON contract and bundle structure validate. Agent-backed estimates must include `qa_estimate.evidence_factors` with non-empty `factor`, `value`, `evidence`, and `source_reference` fields. `source_reference` must cite one of the provided source paths or filenames. Newton uses this as a structural source-citation contract; it does not claim to semantically prove the evidence is true. Newton also preserves generation provenance:
 
 ```text
 qa/plans/login/bundle-generation.codex.prompt.txt
@@ -56,7 +56,7 @@ The template bundle is intentionally small and deterministic:
 - `checklist.md`: manual checklist derived from acceptance criteria bullets.
 - `test-cases.csv`: structured test case rows derived from checklist items, with ID, priority, precondition, steps, expected result, environment, risk category, and source reference.
 - `risk-map.md`: baseline PRD risk categories: functional, edge case, network failure, permission/role, policy conflict, and regression.
-- `qa-estimate.md`: deterministic small-effort estimate with checklist count, P0 basis, source input, manual QA time, and assumptions.
+- `qa-estimate.md`: deterministic small-effort estimate with checklist count, P0 basis, evidence-factor table, source input, manual QA time, and assumptions.
 - `automation-candidates.md`: first checklist item recommended for smoke automation; remaining items kept manual for now.
 - `qa-run-tracker.md`: initial dev/stg/prod and per-checklist status tracker, all set to `not run`.
 - `manifest.json`: machine-readable paths for the bundle artifacts.

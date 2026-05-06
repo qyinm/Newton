@@ -111,6 +111,9 @@ def test_checked_in_demo_planning_bundle_is_valid_and_linked_from_docs():
     assert manifest["source_paths"] == ["qa/inputs/login-ticket.md", "qa/inputs/login-policy.md"]
     assert Path("qa/inputs/login-ticket.md").exists()
     assert Path("qa/inputs/login-policy.md").exists()
+    estimate = (bundle_dir / "qa-estimate.md").read_text()
+    assert "## Evidence Factors" in estimate
+    assert "| checklist_items | 8 items |" in estimate
 
     readme = Path("README.md").read_text()
     planning_doc = Path("docs/qa-planning.md").read_text()

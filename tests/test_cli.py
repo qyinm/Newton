@@ -234,6 +234,10 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
     )
     assert manifest["artifacts"]["qa_run_tracker"] == str(tmp_path / "login" / "qa-run-tracker.md")
     risk_map = (tmp_path / "login" / "risk-map.md").read_text()
+    estimate = (tmp_path / "login" / "qa-estimate.md").read_text()
+    assert "## Evidence Factors" in estimate
+    assert "| checklist_items | 5 items |" in estimate
+    assert "| risk_level | P0 functional |" in estimate
     assert "| edge case |" in risk_map
     assert "| network failure |" in risk_map
     assert "| permission/role |" in risk_map
@@ -545,7 +549,11 @@ def test_qa_plan_bundle_agent_codex_generates_valid_bundle_with_provenance(tmp_p
         "    'size': 'S',\n"
         "    'reasoning': ['2 checklist items', 'Policy-sensitive error copy'],\n"
         "    'manual_qa_time': ['Happy path smoke: 15 min', 'Negative/error cases: 20 min'],\n"
-        "    'assumptions': ['Staging environment is reachable']\n"
+        "    'assumptions': ['Staging environment is reachable'],\n"
+        "    'evidence_factors': [\n"
+        "      {'factor': 'checklist_items', 'value': '2 checklist items', 'evidence': 'Login ticket and policy produce two required QA checks.', 'source_reference': 'qa/inputs/login-ticket.md'},\n"
+        "      {'factor': 'policy_rules', 'value': '1 policy-sensitive rule', 'evidence': 'Login policy requires generic auth failure feedback.', 'source_reference': 'login-policy.md'}\n"
+        "    ]\n"
         "  },\n"
         "  'automation_candidates': [\n"
         "    {'title': 'User can open login page', 'recommendation': 'Recommended', 'reason': 'Stable smoke path with clear pass/fail signal.'},\n"
@@ -582,7 +590,14 @@ def test_qa_plan_bundle_agent_codex_generates_valid_bundle_with_provenance(tmp_p
     assert manifest["agent"] == "codex"
     assert manifest["generation"]["validation_status"] == "accepted"
     assert manifest["generation"]["prompt_path"] == str(bundle_dir / "bundle-generation.codex.prompt.txt")
+    accepted_json = json.loads((bundle_dir / "bundle-generation.codex.json").read_text())
+    assert accepted_json["qa_estimate"]["evidence_factors"][0]["source_reference"] == "qa/inputs/login-ticket.md"
     assert "Error message does not expose whether email exists" in (bundle_dir / "checklist.md").read_text()
+    estimate = (bundle_dir / "qa-estimate.md").read_text()
+    assert "## Evidence Factors" in estimate
+    assert "| Factor | Value | Evidence | Source |" in estimate
+    assert "| policy_rules | 1 policy-sensitive rule |" in estimate
+    assert "| login-policy.md |" in estimate
 
     validate = CliRunner().invoke(app, ["qa", "bundle-validate", str(bundle_dir)])
 
@@ -618,6 +633,95 @@ def test_qa_plan_bundle_agent_rejects_invalid_output_and_preserves_raw(tmp_path:
     assert (bundle_dir / "bundle-generation.codex.prompt.txt").exists()
     assert (bundle_dir / "bundle-generation.codex.raw.txt").read_text().strip() == "not json"
     assert not (bundle_dir / "manifest.json").exists()
+
+
+def test_qa_plan_bundle_agent_rejects_invalid_estimate_evidence(tmp_path: Path):
+    base_payload = {
+        "plan_id": "login",
+        "title": "Login",
+        "qa_scope": {
+            "goal": "Users can securely log in.",
+            "in_scope": ["Successful login"],
+            "out_of_scope": ["Cross-browser matrix"],
+        },
+        "checklist": [
+            {"title": "User can open login page", "risk_category": "functional", "priority": "P0", "source_reference": "login-ticket.md"}
+        ],
+        "test_cases": [
+            {
+                "id": "TC-001",
+                "title": "User can open login page",
+                "priority": "P0",
+                "precondition": "Staging is reachable",
+                "steps": "Open /login",
+                "expected_result": "Login page is visible",
+                "environment": "dev/stg/prod",
+                "risk_category": "functional",
+                "source_reference": "login-ticket.md",
+            }
+        ],
+        "risk_map": [
+            {"area": "functional", "priority": "P0", "rationale": "Login blocks account access"},
+            {"area": "edge case", "priority": "P1", "rationale": "Invalid credentials need coverage"},
+            {"area": "network failure", "priority": "P1", "rationale": "Timeouts need feedback"},
+            {"area": "permission/role", "priority": "P1", "rationale": "Locked users need handling"},
+            {"area": "policy conflict", "priority": "P1", "rationale": "Copy must follow policy"},
+            {"area": "regression", "priority": "P1", "rationale": "Existing login can regress"},
+        ],
+        "qa_estimate": {
+            "size": "S",
+            "reasoning": ["1 checklist item"],
+            "manual_qa_time": ["Happy path smoke: 15 min"],
+            "assumptions": ["Staging is reachable"],
+            "evidence_factors": [
+                {
+                    "factor": "checklist_items",
+                    "value": "1 checklist item",
+                    "evidence": "Login ticket has one core login check.",
+                    "source_reference": "login-ticket.md",
+                }
+            ],
+        },
+        "automation_candidates": [
+            {"title": "User can open login page", "recommendation": "Recommended", "reason": "Stable smoke path."}
+        ],
+    }
+
+    cases = [
+        ("missing_evidence", lambda payload: payload["qa_estimate"].pop("evidence_factors"), "qa_estimate.evidence_factors"),
+        ("empty_source", lambda payload: payload["qa_estimate"]["evidence_factors"][0].update({"source_reference": ""}), "source_reference"),
+        ("unknown_source", lambda payload: payload["qa_estimate"]["evidence_factors"][0].update({"source_reference": "jira-ticket"}), "source_reference"),
+    ]
+
+    for name, mutate, expected_error in cases:
+        case_dir = tmp_path / name
+        fake_agent = tmp_path / f"fake-{name}.py"
+        payload = json.loads(json.dumps(base_payload))
+        mutate(payload)
+        fake_agent.write_text("import json\nprint(" + repr(json.dumps(payload)) + ")\n")
+
+        result = CliRunner().invoke(
+            app,
+            [
+                "qa",
+                "plan-bundle",
+                "qa/inputs/login-ticket.md",
+                "--agent",
+                "codex",
+                "--agent-command",
+                f"python {fake_agent}",
+                "--out",
+                str(case_dir),
+            ],
+        )
+
+        assert result.exit_code != 0
+        combined_output = result.stdout + result.stderr
+        assert "agent planning bundle output did not validate" in combined_output
+        assert expected_error in combined_output
+        bundle_dir = case_dir / "login"
+        assert (bundle_dir / "bundle-generation.codex.raw.txt").exists()
+        assert not (bundle_dir / "manifest.json").exists()
 
 
 def test_qa_plan_generates_valid_scenario(tmp_path: Path):

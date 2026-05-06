@@ -221,6 +221,13 @@ Estimated QA effort: S
 - Risk level: P0 functional
 - Source input: `{input_path}`
 
+## Evidence Factors
+
+| Factor | Value | Evidence | Source |
+| --- | --- | --- | --- |
+| checklist_items | {len(checklist_items)} items | Extracted acceptance criteria count | `{input_path}` |
+| risk_level | P0 functional | Primary flow blocks core user access | `{input_path}` |
+
 ## Suggested Manual QA Time
 
 - Happy path smoke: 15 min
