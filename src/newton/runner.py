@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from newton.backends.base import DryRunBackend, ExecutionBackend
 from newton.models import Platform, RunResult, Scenario, ScenarioTarget
+from newton.plan_provenance import planning_metadata_from_provenance
 from newton.reporting import render_markdown_report
 
 
@@ -54,15 +55,21 @@ def run_scenario(
     run_dir: Path,
     backend_name: str | None = None,
     base_url: str | None = None,
+    plan_provenance_path: Path | None = None,
+    scenario_path: Path | None = None,
 ) -> RunResult:
     target = find_target(scenario, target_id)
     if base_url is not None:
         target = ScenarioTarget.model_validate({**target.model_dump(), "base_url": base_url})
     resolved_backend = backend_name or target.backend
     validate_backend_for_target(target, resolved_backend)
+    planning = None
+    if plan_provenance_path is not None:
+        planning = planning_metadata_from_provenance(plan_provenance_path, scenario_path=scenario_path)
     backend = get_backend(resolved_backend)
     actual_run_dir = run_dir / make_run_id()
     result = backend.run(scenario, target, actual_run_dir)
+    result.planning = planning
 
     actual_run_dir.mkdir(parents=True, exist_ok=True)
     (actual_run_dir / "result.json").write_text(result.model_dump_json(indent=2))

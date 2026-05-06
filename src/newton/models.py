@@ -125,6 +125,7 @@ class RunResult(BaseModel):
     status: RunStatus
     steps: list[StepResult]
     evidence: list[EvidenceArtifact] = Field(default_factory=list)
+    planning: dict[str, str] | None = None
 
     @property
     def passed(self) -> bool:

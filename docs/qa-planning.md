@@ -106,6 +106,33 @@ The provenance JSON records only the minimal audit trail:
 
 If agent output is rejected, `validation_status` is `rejected`, `accepted_scenario_path` is `null`, and the raw output remains available for debugging. Template mode uses the same plan JSON with `prompt_path` and `raw_output_path` set to `null`.
 
+## Linking planning to execution
+
+`qa run` can optionally link a run report to an accepted planning provenance file:
+
+```bash
+newton qa run qa/scenarios/login-smoke.generated.yaml \
+  --target web \
+  --backend playwright \
+  --base-url http://127.0.0.1:8000 \
+  --plan-provenance qa/scenarios/login_ticket.codex.plan.json \
+  --out qa/runs
+```
+
+Newton does not call the agent again. It reads the provenance JSON and copies only small lineage metadata into `qa/runs/<run_id>/result.json` and `qa-report.md`:
+
+```json
+"planning": {
+  "provenance_path": "qa/scenarios/login_ticket.codex.plan.json",
+  "agent": "codex",
+  "input_path": "qa/inputs/login-ticket.md",
+  "accepted_scenario_path": "qa/scenarios/login-smoke.generated.yaml",
+  "validation_status": "accepted"
+}
+```
+
+Only `validation_status: "accepted"` provenance can be linked to a run. When Newton knows the scenario file path, the provenance `accepted_scenario_path` must refer to the same scenario being run.
+
 ## Generated web selectors
 
 The login smoke template uses stable web selectors:

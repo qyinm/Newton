@@ -30,6 +30,176 @@ def test_run_scenario_writes_result_and_report(tmp_path: Path):
     assert "# QA Report: web-login-smoke" in report_path.read_text()
 
 
+def test_run_scenario_links_accepted_plan_provenance_in_result_and_report(tmp_path: Path):
+    scenario_path = Path("tests/fixtures/scenarios/web_login.yaml")
+    scenario = load_scenario(scenario_path)
+    provenance_path = tmp_path / "login_ticket.codex.plan.json"
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "agent": "codex",
+                "input_path": "tests/fixtures/inputs/login_ticket.md",
+                "target": "web",
+                "base_url": "http://127.0.0.1:8000",
+                "prompt_path": "out/login_ticket.codex.prompt.txt",
+                "raw_output_path": "out/login_ticket.codex.raw.txt",
+                "accepted_scenario_path": str(scenario_path),
+                "validation_status": "accepted",
+                "validation_error": None,
+            }
+        )
+    )
+
+    result = run_scenario(
+        scenario,
+        target_id="web",
+        run_dir=tmp_path / "runs",
+        backend_name="dry-run",
+        plan_provenance_path=provenance_path,
+        scenario_path=scenario_path,
+    )
+
+    run_path = tmp_path / "runs" / result.run_id
+    result_payload = json.loads((run_path / "result.json").read_text())
+    report = (run_path / "qa-report.md").read_text()
+
+    assert result_payload["planning"] == {
+        "provenance_path": str(provenance_path),
+        "agent": "codex",
+        "input_path": "tests/fixtures/inputs/login_ticket.md",
+        "accepted_scenario_path": str(scenario_path),
+        "validation_status": "accepted",
+    }
+    assert "## Planning Provenance" in report
+    assert f"**Provenance:** `{provenance_path}`" in report
+    assert "**Agent:** codex" in report
+
+
+def test_run_scenario_rejects_plan_provenance_before_backend_execution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    scenario = load_scenario(Path("tests/fixtures/scenarios/web_login.yaml"))
+    provenance_path = tmp_path / "login_ticket.codex.plan.json"
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "agent": "codex",
+                "input_path": "tests/fixtures/inputs/login_ticket.md",
+                "target": "web",
+                "base_url": "http://127.0.0.1:8000",
+                "prompt_path": "out/login_ticket.codex.prompt.txt",
+                "raw_output_path": "out/login_ticket.codex.raw.txt",
+                "accepted_scenario_path": None,
+                "validation_status": "rejected",
+                "validation_error": "invalid scenario",
+            }
+        )
+    )
+    executed = False
+
+    class RecordingBackend:
+        def run(self, scenario, target, run_dir):
+            nonlocal executed
+            executed = True
+            from newton.models import RunResult
+
+            return RunResult(
+                run_id=run_dir.name,
+                scenario_id=scenario.meta.id,
+                target_id=target.id,
+                platform=target.platform,
+                status="passed",
+                steps=[],
+            )
+
+    monkeypatch.setattr("newton.runner.get_backend", lambda name: RecordingBackend())
+
+    with pytest.raises(ValueError, match="plan provenance must be accepted"):
+        run_scenario(
+            scenario,
+            target_id="web",
+            run_dir=tmp_path / "runs",
+            backend_name="dry-run",
+            plan_provenance_path=provenance_path,
+        )
+
+    assert executed is False
+    assert not (tmp_path / "runs").exists()
+
+
+def test_run_scenario_rejects_unrelated_plan_provenance(tmp_path: Path):
+    scenario_path = Path("tests/fixtures/scenarios/web_login.yaml")
+    scenario = load_scenario(scenario_path)
+    provenance_path = tmp_path / "login_ticket.codex.plan.json"
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "agent": "codex",
+                "input_path": "tests/fixtures/inputs/login_ticket.md",
+                "target": "web",
+                "base_url": "http://127.0.0.1:8000",
+                "prompt_path": "out/login_ticket.codex.prompt.txt",
+                "raw_output_path": "out/login_ticket.codex.raw.txt",
+                "accepted_scenario_path": "tests/fixtures/scenarios/other.yaml",
+                "validation_status": "accepted",
+                "validation_error": None,
+            }
+        )
+    )
+
+    with pytest.raises(ValueError, match="does not match scenario path"):
+        run_scenario(
+            scenario,
+            target_id="web",
+            run_dir=tmp_path / "runs",
+            backend_name="dry-run",
+            plan_provenance_path=provenance_path,
+            scenario_path=scenario_path,
+        )
+
+
+def test_run_scenario_rejects_accepted_plan_provenance_without_scenario_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    scenario = load_scenario(Path("tests/fixtures/scenarios/web_login.yaml"))
+    provenance_path = tmp_path / "login_ticket.codex.plan.json"
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "agent": "codex",
+                "input_path": "tests/fixtures/inputs/login_ticket.md",
+                "target": "web",
+                "base_url": "http://127.0.0.1:8000",
+                "prompt_path": "out/login_ticket.codex.prompt.txt",
+                "raw_output_path": "out/login_ticket.codex.raw.txt",
+                "accepted_scenario_path": None,
+                "validation_status": "accepted",
+                "validation_error": None,
+            }
+        )
+    )
+    executed = False
+
+    class RecordingBackend:
+        def run(self, scenario, target, run_dir):
+            nonlocal executed
+            executed = True
+            raise AssertionError("backend should not execute")
+
+    monkeypatch.setattr("newton.runner.get_backend", lambda name: RecordingBackend())
+
+    with pytest.raises(ValueError, match="accepted plan provenance must include accepted_scenario_path"):
+        run_scenario(
+            scenario,
+            target_id="web",
+            run_dir=tmp_path / "runs",
+            backend_name="dry-run",
+            plan_provenance_path=provenance_path,
+        )
+
+    assert executed is False
+
+
 def test_run_scenario_rejects_backend_platform_mismatch(tmp_path: Path):
     scenario = load_scenario(Path("tests/fixtures/scenarios/cross_platform_login.yaml"))
 

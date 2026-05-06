@@ -65,6 +65,18 @@ valid: web-login-smoke
 newton qa run qa/scenarios/web-login-smoke.yaml --target web --backend dry-run --out qa/runs
 ```
 
+To link a generated scenario back to its planning provenance, pass the accepted plan JSON:
+
+```bash
+newton qa run qa/scenarios/login-smoke.generated.yaml \
+  --target web \
+  --backend dry-run \
+  --plan-provenance qa/scenarios/login_ticket.codex.plan.json \
+  --out qa/runs
+```
+
+The run `result.json` and `qa-report.md` include a small `planning`/Planning Provenance section with the provenance path, agent, source input, accepted scenario path, and validation status.
+
 Outputs:
 
 ```text

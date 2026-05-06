@@ -25,6 +25,10 @@ def render_markdown_report(result: RunResult) -> str:
     if evidence_lines:
         lines.extend(["", *evidence_lines])
 
+    planning_lines = _render_planning_section(result)
+    if planning_lines:
+        lines.extend(["", *planning_lines])
+
     if not result.passed:
         failed = [step for step in result.steps if step.status == "failed"]
         first_error = failed[0].error if failed else "Unknown failure"
@@ -80,6 +84,27 @@ def _render_evidence_sections(result: RunResult) -> list[str]:
             lines.append("")
         lines.extend(step_lines)
 
+    return lines
+
+
+def _render_planning_section(result: RunResult) -> list[str]:
+    if not result.planning:
+        return []
+    lines = ["## Planning Provenance", ""]
+    labels = {
+        "provenance_path": "Provenance",
+        "agent": "Agent",
+        "input_path": "Input",
+        "accepted_scenario_path": "Accepted Scenario",
+        "validation_status": "Validation Status",
+    }
+    path_keys = {"provenance_path", "input_path", "accepted_scenario_path"}
+    for key, label in labels.items():
+        value = result.planning.get(key)
+        if value is None:
+            continue
+        rendered_value = f"`{value}`" if key in path_keys else value
+        lines.append(f"**{label}:** {rendered_value}")
     return lines
 
 

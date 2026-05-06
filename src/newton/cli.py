@@ -6,7 +6,7 @@ import typer
 
 from newton import __version__
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
-from newton.plan_provenance import write_plan_provenance
+from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.runner import run_scenario
 from newton.scenario_loader import ScenarioLoadError, load_scenario
@@ -86,6 +86,11 @@ def qa_run(
     target: str = typer.Option(..., "--target", help="Scenario target id to run"),
     backend: str | None = typer.Option(None, "--backend", help="Override backend"),
     base_url: str | None = typer.Option(None, "--base-url", help="Override web target base URL"),
+    plan_provenance: Path | None = typer.Option(
+        None,
+        "--plan-provenance",
+        help="Accepted qa plan provenance JSON to link into the run report",
+    ),
     out: Path = typer.Option(Path("qa/runs"), "--out", help="Run output directory"),
 ) -> None:
     """Run a Newton QA scenario."""
@@ -97,8 +102,10 @@ def qa_run(
             run_dir=out,
             backend_name=backend,
             base_url=base_url,
+            plan_provenance_path=plan_provenance,
+            scenario_path=path,
         )
-    except (ScenarioLoadError, ValueError) as exc:
+    except (ScenarioLoadError, PlanProvenanceError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 
     typer.echo(f"run: {out / result.run_id}")
