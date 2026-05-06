@@ -1,0 +1,19 @@
+{
+  "plan_id": "login",
+  "bundle_dir_name": "plan",
+  "input_path": "qa/dogfood/login/inputs/ticket.md",
+  "source_paths": [
+    "qa/dogfood/login/inputs/ticket.md",
+    "qa/dogfood/login/inputs/policy.md",
+    "qa/dogfood/login/inputs/design-notes.md"
+  ],
+  "artifacts": {
+    "qa_scope": "qa/dogfood/login/plan/qa-scope.md",
+    "checklist": "qa/dogfood/login/plan/checklist.md",
+    "test_cases": "qa/dogfood/login/plan/test-cases.csv",
+    "risk_map": "qa/dogfood/login/plan/risk-map.md",
+    "qa_estimate": "qa/dogfood/login/plan/qa-estimate.md",
+    "automation_candidates": "qa/dogfood/login/plan/automation-candidates.md",
+    "qa_run_tracker": "qa/dogfood/login/plan/qa-run-tracker.md"
+  }
+}

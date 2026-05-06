@@ -99,12 +99,24 @@ def qa_plan_bundle(
         hidden=True,
     ),
     out: Path = typer.Option(Path("qa/plans"), "--out", help="Planning bundle output directory"),
+    bundle_dir_name: str | None = typer.Option(
+        None,
+        "--bundle-dir-name",
+        help="Override generated bundle directory name while preserving manifest plan_id",
+    ),
 ) -> None:
     """Generate a minimal QA planning bundle from markdown context."""
     try:
         if agent == "template":
-            bundle_dir = generate_planning_bundle(path, out_dir=out, source_paths=source)
+            bundle_dir = generate_planning_bundle(
+                path,
+                out_dir=out,
+                source_paths=source,
+                bundle_dir_name=bundle_dir_name,
+            )
         else:
+            if bundle_dir_name is not None:
+                raise AgentPlanningBundleError("--bundle-dir-name is only supported with --agent template")
             bundle_dir = generate_planning_bundle_with_agent(
                 path,
                 out_dir=out,

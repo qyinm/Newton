@@ -1,0 +1,74 @@
+{
+  "run_id": "run_c96d5ae286d8",
+  "scenario_id": "login-smoke",
+  "target_id": "web",
+  "platform": "web",
+  "status": "failed",
+  "steps": [
+    {
+      "id": "open-login",
+      "action": "navigate",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 68,
+      "evidence": []
+    },
+    {
+      "id": "enter-email",
+      "action": "input_text",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 46,
+      "evidence": []
+    },
+    {
+      "id": "enter-password",
+      "action": "input_text",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 35,
+      "evidence": []
+    },
+    {
+      "id": "submit",
+      "action": "tap",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 39,
+      "evidence": []
+    },
+    {
+      "id": "assert-dashboard",
+      "action": "assert_visible",
+      "status": "failed",
+      "error": "Locator.wait_for: Timeout 10000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Dashboard\") to be visible\n",
+      "duration_ms": 10067,
+      "evidence": [
+        {
+          "kind": "screenshot",
+          "path": "failure-step-005-assert-dashboard.png",
+          "description": "Failure screenshot for step assert-dashboard"
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "screenshot",
+      "path": "failure-step-005-assert-dashboard.png",
+      "description": "Failure screenshot for step assert-dashboard"
+    },
+    {
+      "kind": "trace",
+      "path": "playwright-trace.zip",
+      "description": "Playwright trace for failed run"
+    }
+  ],
+  "planning": {
+    "provenance_path": "qa/dogfood/login/scenario/login_ticket.template.plan.json",
+    "agent": "template",
+    "input_path": "qa/dogfood/login/inputs/ticket.md",
+    "accepted_scenario_path": "qa/dogfood/login/scenario/login-smoke.generated.yaml",
+    "validation_status": "accepted"
+  }
+}

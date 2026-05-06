@@ -11,7 +11,12 @@ class PlanningBundleError(ValueError):
     """Raised when markdown context cannot produce a planning bundle."""
 
 
-def generate_planning_bundle(input_path: Path, out_dir: Path, source_paths: list[Path] | None = None) -> Path:
+def generate_planning_bundle(
+    input_path: Path,
+    out_dir: Path,
+    source_paths: list[Path] | None = None,
+    bundle_dir_name: str | None = None,
+) -> Path:
     all_source_paths = [input_path, *(source_paths or [])]
     markdown_by_path = _read_markdown_sources(all_source_paths)
 
@@ -21,7 +26,7 @@ def generate_planning_bundle(input_path: Path, out_dir: Path, source_paths: list
     summary = _extract_summary(markdown)
     checklist_items = _extract_all_acceptance_criteria(markdown_by_path) or [summary]
 
-    bundle_dir = out_dir / plan_id
+    bundle_dir = out_dir / (bundle_dir_name or plan_id)
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     qa_scope_path = bundle_dir / "qa-scope.md"
@@ -37,29 +42,27 @@ def generate_planning_bundle(input_path: Path, out_dir: Path, source_paths: list
     checklist_path.write_text(_render_checklist(title, checklist_items))
     test_cases_path.write_text(_render_test_cases_csv(checklist_items))
     risk_map_path.write_text(_render_risk_map(title))
-    qa_estimate_path.write_text(_render_estimate(title, checklist_items, input_path))
+    qa_estimate_path.write_text(_render_estimate(title, checklist_items, all_source_paths))
     automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
     qa_run_tracker_path.write_text(_render_run_tracker(title, checklist_items))
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "plan_id": plan_id,
-                "input_path": str(input_path),
-                "source_paths": [str(source_path) for source_path in all_source_paths],
-                "artifacts": {
-                    "qa_scope": str(qa_scope_path),
-                    "checklist": str(checklist_path),
-                    "test_cases": str(test_cases_path),
-                    "risk_map": str(risk_map_path),
-                    "qa_estimate": str(qa_estimate_path),
-                    "automation_candidates": str(automation_candidates_path),
-                    "qa_run_tracker": str(qa_run_tracker_path),
-                },
-            },
-            indent=2,
-        )
-        + "\n"
-    )
+    manifest: dict[str, object] = {
+        "plan_id": plan_id,
+        "input_path": str(input_path),
+        "source_paths": [str(source_path) for source_path in all_source_paths],
+        "artifacts": {
+            "qa_scope": str(qa_scope_path),
+            "checklist": str(checklist_path),
+            "test_cases": str(test_cases_path),
+            "risk_map": str(risk_map_path),
+            "qa_estimate": str(qa_estimate_path),
+            "automation_candidates": str(automation_candidates_path),
+            "qa_run_tracker": str(qa_run_tracker_path),
+        },
+    }
+    if bundle_dir_name is not None:
+        manifest["bundle_dir_name"] = bundle_dir.name
+
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     return bundle_dir
 
 
@@ -208,7 +211,12 @@ Source: generated PRD baseline risks
 """
 
 
-def _render_estimate(title: str, checklist_items: list[str], input_path: Path) -> str:
+def _render_estimate(title: str, checklist_items: list[str], source_paths: list[Path]) -> str:
+    source_input = source_paths[0]
+    source_rows = "\n".join(
+        f"| source_{index} | `{source_path.name}` | Provided planning context included in bundle generation | `{source_path}` |"
+        for index, source_path in enumerate(source_paths, start=1)
+    )
     return f"""# QA Estimate: {title}
 
 ## Summary
@@ -219,14 +227,15 @@ Estimated QA effort: S
 
 - Checklist items: {len(checklist_items)}
 - Risk level: P0 functional
-- Source input: `{input_path}`
+- Source input: `{source_input}`
 
 ## Evidence Factors
 
 | Factor | Value | Evidence | Source |
 | --- | --- | --- | --- |
-| checklist_items | {len(checklist_items)} items | Extracted acceptance criteria count | `{input_path}` |
-| risk_level | P0 functional | Primary flow blocks core user access | `{input_path}` |
+| checklist_items | {len(checklist_items)} items | Extracted acceptance criteria count | `{source_input}` |
+| risk_level | P0 functional | Primary flow blocks core user access | `{source_input}` |
+{source_rows}
 
 ## Suggested Manual QA Time
 

@@ -1,0 +1,57 @@
+{
+  "run_id": "run_f268ce6c9e79",
+  "scenario_id": "login-smoke",
+  "target_id": "web",
+  "platform": "web",
+  "status": "passed",
+  "steps": [
+    {
+      "id": "open-login",
+      "action": "navigate",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 56,
+      "evidence": []
+    },
+    {
+      "id": "enter-email",
+      "action": "input_text",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 43,
+      "evidence": []
+    },
+    {
+      "id": "enter-password",
+      "action": "input_text",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 32,
+      "evidence": []
+    },
+    {
+      "id": "submit",
+      "action": "tap",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 32,
+      "evidence": []
+    },
+    {
+      "id": "assert-dashboard",
+      "action": "assert_visible",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 16,
+      "evidence": []
+    }
+  ],
+  "evidence": [],
+  "planning": {
+    "provenance_path": "qa/dogfood/login/scenario/login_ticket.template.plan.json",
+    "agent": "template",
+    "input_path": "qa/dogfood/login/inputs/ticket.md",
+    "accepted_scenario_path": "qa/dogfood/login/scenario/login-smoke.generated.yaml",
+    "validation_status": "accepted"
+  }
+}

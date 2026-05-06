@@ -1,0 +1,23 @@
+# QA Checklist: Login
+
+- [ ] User can open login page from a direct `/login.html` route
+- [ ] User can enter email
+- [ ] User can enter password
+- [ ] User can submit valid credentials
+- [ ] User sees Dashboard after successful submit
+- [ ] Locked users see account recovery guidance before retrying
+- [ ] Expired sessions return the user to login before protected dashboard access
+- [ ] Existing dashboard navigation must continue to work after login.
+- [ ] The smoke scenario should remain stable enough to automate across dev and staging.
+- [ ] Error message does not expose whether email exists
+- [ ] Password failures keep the user on the login page with retry guidance
+- [ ] Locked accounts show account recovery guidance instead of generic failure copy
+- [ ] Session timeout requires a fresh login before opening protected dashboard content
+- [ ] Security copy must not confirm account existence.
+- [ ] Recovery guidance is required for locked accounts.
+- [ ] Email field is exposed as a textbox named Email
+- [ ] Password field exposes `data-testid="password-input"`
+- [ ] Primary action is a button named Log in
+- [ ] Successful submit reveals visible Dashboard text
+- [ ] Use role/name selectors for visible controls.
+- [ ] Use the password test ID because password fields can be inconsistently named by browsers.

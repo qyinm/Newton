@@ -1,0 +1,72 @@
+# Automation Candidates: Login
+
+## Recommended
+
+- User can open login page from a direct `/login.html` route
+  - Source: checklist item 1
+  - Suggested automation: web scenario smoke test
+  - Priority: P0
+  - Reason: stable happy path with clear pass/fail signal.
+
+## Manual For Now
+
+- User can enter email
+  - Source: checklist item 2
+  - Reason: keep manual until the flow and copy are stable.
+- User can enter password
+  - Source: checklist item 3
+  - Reason: keep manual until the flow and copy are stable.
+- User can submit valid credentials
+  - Source: checklist item 4
+  - Reason: keep manual until the flow and copy are stable.
+- User sees Dashboard after successful submit
+  - Source: checklist item 5
+  - Reason: keep manual until the flow and copy are stable.
+- Locked users see account recovery guidance before retrying
+  - Source: checklist item 6
+  - Reason: keep manual until the flow and copy are stable.
+- Expired sessions return the user to login before protected dashboard access
+  - Source: checklist item 7
+  - Reason: keep manual until the flow and copy are stable.
+- Existing dashboard navigation must continue to work after login.
+  - Source: checklist item 8
+  - Reason: keep manual until the flow and copy are stable.
+- The smoke scenario should remain stable enough to automate across dev and staging.
+  - Source: checklist item 9
+  - Reason: keep manual until the flow and copy are stable.
+- Error message does not expose whether email exists
+  - Source: checklist item 10
+  - Reason: keep manual until the flow and copy are stable.
+- Password failures keep the user on the login page with retry guidance
+  - Source: checklist item 11
+  - Reason: keep manual until the flow and copy are stable.
+- Locked accounts show account recovery guidance instead of generic failure copy
+  - Source: checklist item 12
+  - Reason: keep manual until the flow and copy are stable.
+- Session timeout requires a fresh login before opening protected dashboard content
+  - Source: checklist item 13
+  - Reason: keep manual until the flow and copy are stable.
+- Security copy must not confirm account existence.
+  - Source: checklist item 14
+  - Reason: keep manual until the flow and copy are stable.
+- Recovery guidance is required for locked accounts.
+  - Source: checklist item 15
+  - Reason: keep manual until the flow and copy are stable.
+- Email field is exposed as a textbox named Email
+  - Source: checklist item 16
+  - Reason: keep manual until the flow and copy are stable.
+- Password field exposes `data-testid="password-input"`
+  - Source: checklist item 17
+  - Reason: keep manual until the flow and copy are stable.
+- Primary action is a button named Log in
+  - Source: checklist item 18
+  - Reason: keep manual until the flow and copy are stable.
+- Successful submit reveals visible Dashboard text
+  - Source: checklist item 19
+  - Reason: keep manual until the flow and copy are stable.
+- Use role/name selectors for visible controls.
+  - Source: checklist item 20
+  - Reason: keep manual until the flow and copy are stable.
+- Use the password test ID because password fields can be inconsistently named by browsers.
+  - Source: checklist item 21
+  - Reason: keep manual until the flow and copy are stable.

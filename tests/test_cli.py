@@ -277,6 +277,27 @@ Acceptance criteria:
     ).read_text()
 
 
+def test_qa_plan_bundle_accepts_bundle_dir_name(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path / "dogfood"),
+            "--bundle-dir-name",
+            "plan",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert f"bundle: {tmp_path / 'dogfood' / 'plan'}" in result.stdout
+    manifest = json.loads((tmp_path / "dogfood" / "plan" / "manifest.json").read_text())
+    assert manifest["plan_id"] == "login"
+    assert manifest["bundle_dir_name"] == "plan"
+
+
 def test_qa_bundle_validate_accepts_generated_bundle(tmp_path: Path):
     result = CliRunner().invoke(
         app,

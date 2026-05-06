@@ -1,0 +1,94 @@
+# QA Run Tracker: Login
+
+## Environment Status
+
+- dev: not run
+- stg: failed
+- prod: not run
+
+## Checklist Status
+
+- [ ] User can open login page from a direct `/login.html` route
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] User can enter email
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] User can enter password
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] User can submit valid credentials
+  - env: dev
+  - status: not run
+  - notes:
+- [x] User sees Dashboard after successful submit
+  - env: stg
+  - status: failed
+  - notes: Run run_c96d5ae286d8 failed; report: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md
+- [ ] Locked users see account recovery guidance before retrying
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Expired sessions return the user to login before protected dashboard access
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Existing dashboard navigation must continue to work after login.
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] The smoke scenario should remain stable enough to automate across dev and staging.
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Error message does not expose whether email exists
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Password failures keep the user on the login page with retry guidance
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Locked accounts show account recovery guidance instead of generic failure copy
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Session timeout requires a fresh login before opening protected dashboard content
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Security copy must not confirm account existence.
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Recovery guidance is required for locked accounts.
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Email field is exposed as a textbox named Email
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Password field exposes `data-testid="password-input"`
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Primary action is a button named Log in
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Successful submit reveals visible Dashboard text
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Use role/name selectors for visible controls.
+  - env: dev
+  - status: not run
+  - notes:
+- [ ] Use the password test ID because password fields can be inconsistently named by browsers.
+  - env: dev
+  - status: not run
+  - notes:
