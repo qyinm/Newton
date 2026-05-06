@@ -12,11 +12,10 @@ Use `plan-bundle` when you want PRD-style QA planning artifacts rather than an e
 ```bash
 newton qa plan-bundle qa/inputs/login-ticket.md \
   --source qa/inputs/login-policy.md \
-  --source qa/inputs/staging-notes.md \
   --out qa/plans
 ```
 
-The first path remains the primary ticket/context source used for title and goal extraction. Repeated `--source` paths are merged into checklist and test-case generation, and all source paths are recorded in `manifest.json`.
+The repository includes `qa/inputs/login-ticket.md`, `qa/inputs/login-policy.md`, and the generated `qa/plans/login/` bundle as a checked-in demo. The first path remains the primary ticket/context source used for title and goal extraction. Repeated `--source` paths are merged into checklist and test-case generation, and all source paths are recorded in `manifest.json`.
 
 Output:
 
@@ -64,9 +63,9 @@ Successful output:
 ```text
 valid_bundle: login
 artifacts: 8
-checklist_items: 5
-test_cases: 5
-tracker_items: 5
+checklist_items: 8
+test_cases: 8
+tracker_items: 8
 ```
 
 After structural validation passes, generate an optional advisory review:

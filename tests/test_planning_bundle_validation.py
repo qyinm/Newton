@@ -94,3 +94,27 @@ def test_validate_planning_bundle_rejects_manifest_path_that_does_not_match_arti
 
     with pytest.raises(PlanningBundleValidationError, match="missing artifact: checklist.md"):
         validate_planning_bundle(bundle_dir)
+
+
+def test_checked_in_demo_planning_bundle_is_valid_and_linked_from_docs():
+    bundle_dir = Path("qa/plans/login")
+
+    result = validate_planning_bundle(bundle_dir)
+
+    assert result.plan_id == "login"
+    assert result.artifact_count == 8
+    assert result.checklist_items == 8
+    assert result.test_cases == 8
+    assert result.tracker_items == 8
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["input_path"] == "qa/inputs/login-ticket.md"
+    assert manifest["source_paths"] == ["qa/inputs/login-ticket.md", "qa/inputs/login-policy.md"]
+    assert Path("qa/inputs/login-ticket.md").exists()
+    assert Path("qa/inputs/login-policy.md").exists()
+
+    readme = Path("README.md").read_text()
+    planning_doc = Path("docs/qa-planning.md").read_text()
+    assert "newton qa bundle-validate qa/plans/login" in readme
+    assert "newton qa bundle-validate qa/plans/login" in planning_doc
+    assert "qa/inputs/login-ticket.md" in readme
+    assert "qa/inputs/login-policy.md" in readme

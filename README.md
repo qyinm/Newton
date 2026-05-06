@@ -22,9 +22,10 @@ Generate a minimal PRD-style planning bundle from markdown product/ticket contex
 ```bash
 newton qa plan-bundle qa/inputs/login-ticket.md \
   --source qa/inputs/login-policy.md \
-  --source qa/inputs/staging-notes.md \
   --out qa/plans
 ```
+
+The repository includes this demo input pair and the checked-in generated bundle under `qa/plans/login/` so agents and CI can validate the PRD planning contract without regenerating fixtures first.
 
 Use `--source` to merge extra markdown sources such as policy notes, staging notes, or design annotations into the same checklist/test-case bundle. `risk-map.md` includes baseline PRD risk categories: edge case, network failure, permission/role, policy conflict, and regression.
 
@@ -73,9 +74,9 @@ Expected:
 ```text
 valid_bundle: login
 artifacts: 8
-checklist_items: 5
-test_cases: 5
-tracker_items: 5
+checklist_items: 8
+test_cases: 8
+tracker_items: 8
 ```
 
 Optionally request an advisory QA review. `template` is deterministic; `codex` and `claude` use an external agent and preserve prompt/raw output next to the review artifacts. Default external review commands are constrained (`codex` read-only sandbox, `claude` tools disabled); `--agent-command` is an explicit override for tests or custom setups:

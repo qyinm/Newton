@@ -1,0 +1,17 @@
+{
+  "plan_id": "login",
+  "input_path": "qa/inputs/login-ticket.md",
+  "source_paths": [
+    "qa/inputs/login-ticket.md",
+    "qa/inputs/login-policy.md"
+  ],
+  "artifacts": {
+    "qa_scope": "qa/plans/login/qa-scope.md",
+    "checklist": "qa/plans/login/checklist.md",
+    "test_cases": "qa/plans/login/test-cases.csv",
+    "risk_map": "qa/plans/login/risk-map.md",
+    "qa_estimate": "qa/plans/login/qa-estimate.md",
+    "automation_candidates": "qa/plans/login/automation-candidates.md",
+    "qa_run_tracker": "qa/plans/login/qa-run-tracker.md"
+  }
+}
