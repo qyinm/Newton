@@ -6,6 +6,7 @@ import typer
 
 from newton import __version__
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
+from newton.plan_provenance import write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.runner import run_scenario
 from newton.scenario_loader import ScenarioLoadError, load_scenario
@@ -50,6 +51,18 @@ def qa_plan(
     try:
         if agent == "template":
             output_path = plan_scenario_from_markdown(path, target=target, out_dir=out, base_url=base_url)
+            write_plan_provenance(
+                input_path=path,
+                agent="template",
+                target=target,
+                out_dir=out,
+                base_url=base_url,
+                prompt_path=None,
+                raw_output_path=None,
+                accepted_scenario_path=output_path,
+                validation_status="accepted",
+                validation_error=None,
+            )
         else:
             output_path = plan_scenario_with_agent(
                 path,

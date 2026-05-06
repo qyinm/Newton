@@ -28,6 +28,15 @@ Outputs:
 
 ```text
 qa/scenarios/login-smoke.generated.yaml
+qa/scenarios/login_ticket.template.plan.json
+```
+
+Agent-backed planning also records the exact prompt and raw stdout:
+
+```text
+qa/scenarios/login_ticket.codex.prompt.txt
+qa/scenarios/login_ticket.codex.raw.txt
+qa/scenarios/login_ticket.codex.plan.json
 ```
 
 For a cross-platform draft:

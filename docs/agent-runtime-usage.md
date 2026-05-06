@@ -25,6 +25,8 @@ newton qa report <run-dir>
 - Agents should call the CLI rather than invent ad-hoc workflows.
 - `qa plan` turns markdown context into a validated scenario YAML draft.
 - In agent mode, Codex or Claude Code proposes YAML; Newton accepts it only after schema validation.
+- `qa plan` writes `<input-stem>.<agent>.plan.json` as planning provenance, including selected agent, input, prompt/raw output paths, accepted scenario path, and validation status.
+- Planning provenance is audit/replay metadata, not an execution contract.
 - Outputs are normalized under `qa/runs/<run_id>/`.
 - `result.json` is the machine-readable contract.
 - `qa-report.md` is the human-readable summary.

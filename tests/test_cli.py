@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 from typer.testing import CliRunner
 
@@ -85,6 +86,19 @@ def test_qa_plan_generates_valid_scenario(tmp_path: Path):
     assert "valid: login-smoke" in result.stdout
     assert (tmp_path / "login-smoke.generated.yaml").exists()
 
+    provenance = json.loads((tmp_path / "login_ticket.template.plan.json").read_text())
+    assert provenance == {
+        "agent": "template",
+        "input_path": "tests/fixtures/inputs/login_ticket.md",
+        "target": "web",
+        "base_url": "http://127.0.0.1:8000",
+        "prompt_path": None,
+        "raw_output_path": None,
+        "accepted_scenario_path": str(tmp_path / "login-smoke.generated.yaml"),
+        "validation_status": "accepted",
+        "validation_error": None,
+    }
+
 
 def test_qa_plan_agent_codex_uses_shared_agent_contract(tmp_path: Path):
     fake_agent = tmp_path / "fake-agent.py"
@@ -134,6 +148,9 @@ def test_qa_plan_agent_codex_uses_shared_agent_contract(tmp_path: Path):
     assert "planned:" in result.stdout
     assert "valid: cli-agent-login-smoke" in result.stdout
     assert (tmp_path / "cli-agent-login-smoke.generated.yaml").exists()
+    assert (tmp_path / "login_ticket.codex.prompt.txt").exists()
+    assert (tmp_path / "login_ticket.codex.raw.txt").exists()
+    assert (tmp_path / "login_ticket.codex.plan.json").exists()
 
 
 def test_qa_report_prints_existing_report_path(tmp_path: Path):

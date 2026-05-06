@@ -73,6 +73,39 @@ For `--agent codex` and `--agent claude`, Newton:
 
 Invalid agent output fails the command and preserves raw stdout as `<input-stem>.<agent>.raw.txt` in the output directory.
 
+## Planning provenance
+
+Every successful `qa plan` run writes a flat provenance JSON next to generated scenarios:
+
+```text
+qa/scenarios/<input-stem>.<agent>.plan.json
+```
+
+For `--agent codex` and `--agent claude`, Newton also preserves the exact prompt and raw stdout:
+
+```text
+qa/scenarios/<input-stem>.<agent>.prompt.txt
+qa/scenarios/<input-stem>.<agent>.raw.txt
+```
+
+The provenance JSON records only the minimal audit trail:
+
+```json
+{
+  "agent": "codex",
+  "input_path": "qa/inputs/login-ticket.md",
+  "target": "web",
+  "base_url": "http://127.0.0.1:8000",
+  "prompt_path": "qa/scenarios/login-ticket.codex.prompt.txt",
+  "raw_output_path": "qa/scenarios/login-ticket.codex.raw.txt",
+  "accepted_scenario_path": "qa/scenarios/login-smoke.generated.yaml",
+  "validation_status": "accepted",
+  "validation_error": null
+}
+```
+
+If agent output is rejected, `validation_status` is `rejected`, `accepted_scenario_path` is `null`, and the raw output remains available for debugging. Template mode uses the same plan JSON with `prompt_path` and `raw_output_path` set to `null`.
+
 ## Generated web selectors
 
 The login smoke template uses stable web selectors:

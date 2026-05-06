@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Callable, Sequence
 
+from newton.plan_provenance import write_plan_provenance
 from newton.scenario_loader import ScenarioLoadError, load_scenario
 
 AgentRun = Callable[..., subprocess.CompletedProcess[str]]
@@ -42,7 +43,9 @@ def plan_scenario_with_agent(
     argv, prompt_via_stdin = _agent_command(agent, prompt, command)
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    prompt_path = out_dir / f"{input_path.stem}.{agent}.prompt.txt"
     raw_output_path = out_dir / f"{input_path.stem}.{agent}.raw.txt"
+    prompt_path.write_text(prompt)
 
     try:
         completed = run(
@@ -53,13 +56,37 @@ def plan_scenario_with_agent(
             check=True,
         )
     except FileNotFoundError as exc:
-        raise AgentPlanningError(
-            f"{agent} planner command not found: {argv[0]}. Install/authenticate it or use --agent template."
-        ) from exc
+        error = f"{agent} planner command not found: {argv[0]}. Install/authenticate it or use --agent template."
+        write_plan_provenance(
+            input_path=input_path,
+            agent=agent,
+            target=target,
+            out_dir=out_dir,
+            base_url=base_url,
+            prompt_path=prompt_path,
+            raw_output_path=None,
+            accepted_scenario_path=None,
+            validation_status="rejected",
+            validation_error=error,
+        )
+        raise AgentPlanningError(error) from exc
     except subprocess.CalledProcessError as exc:
         raw = (exc.stdout or "") + (exc.stderr or "")
         raw_output_path.write_text(raw)
-        raise AgentPlanningError(f"{agent} planner command failed; raw output saved to {raw_output_path}") from exc
+        error = f"{agent} planner command failed; raw output saved to {raw_output_path}"
+        write_plan_provenance(
+            input_path=input_path,
+            agent=agent,
+            target=target,
+            out_dir=out_dir,
+            base_url=base_url,
+            prompt_path=prompt_path,
+            raw_output_path=raw_output_path,
+            accepted_scenario_path=None,
+            validation_status="rejected",
+            validation_error=error,
+        )
+        raise AgentPlanningError(error) from exc
 
     raw_output_path.write_text(completed.stdout)
     yaml_text = _extract_yaml(completed.stdout)
@@ -69,10 +96,35 @@ def plan_scenario_with_agent(
     try:
         scenario = load_scenario(candidate_path)
     except ScenarioLoadError as exc:
-        raise AgentPlanningError(f"agent output did not validate; raw output saved to {raw_output_path}") from exc
+        error = f"agent output did not validate; raw output saved to {raw_output_path}"
+        write_plan_provenance(
+            input_path=input_path,
+            agent=agent,
+            target=target,
+            out_dir=out_dir,
+            base_url=base_url,
+            prompt_path=prompt_path,
+            raw_output_path=raw_output_path,
+            accepted_scenario_path=None,
+            validation_status="rejected",
+            validation_error=error,
+        )
+        raise AgentPlanningError(error) from exc
 
     output_path = out_dir / f"{scenario.meta.id}.generated.yaml"
     output_path.write_text(yaml_text)
+    write_plan_provenance(
+        input_path=input_path,
+        agent=agent,
+        target=target,
+        out_dir=out_dir,
+        base_url=base_url,
+        prompt_path=prompt_path,
+        raw_output_path=raw_output_path,
+        accepted_scenario_path=output_path,
+        validation_status="accepted",
+        validation_error=None,
+    )
     candidate_path.unlink(missing_ok=True)
     return output_path
 
