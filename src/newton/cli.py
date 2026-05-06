@@ -8,6 +8,8 @@ from newton import __version__
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
+from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
+from newton.run_index import read_run_index
 from newton.runner import run_scenario
 from newton.scenario_loader import ScenarioLoadError, load_scenario
 
@@ -80,6 +82,23 @@ def qa_plan(
     typer.echo(f"valid: {scenario.meta.id}")
 
 
+@qa_app.command("plan-bundle")
+def qa_plan_bundle(
+    path: Path,
+    out: Path = typer.Option(Path("qa/plans"), "--out", help="Planning bundle output directory"),
+) -> None:
+    """Generate a minimal QA planning bundle from markdown context."""
+    try:
+        bundle_dir = generate_planning_bundle(path, out_dir=out)
+    except PlanningBundleError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"bundle: {bundle_dir}")
+    typer.echo(f"scope: {bundle_dir / 'qa-scope.md'}")
+    typer.echo(f"checklist: {bundle_dir / 'checklist.md'}")
+    typer.echo(f"risk_map: {bundle_dir / 'risk-map.md'}")
+
+
 @qa_app.command("run")
 def qa_run(
     path: Path,
@@ -119,3 +138,12 @@ def qa_report(run_path: Path) -> None:
     if not report_path.exists():
         raise typer.BadParameter(f"qa report not found: {report_path}")
     typer.echo(str(report_path))
+
+
+@qa_app.command("runs")
+def qa_runs(out: Path = typer.Option(Path("qa/runs"), "--out", help="Run output directory")) -> None:
+    """List locally indexed QA runs."""
+    for entry in read_run_index(out):
+        typer.echo(
+            f"{entry['run_id']}  {entry['status']}  {entry['scenario_id']}  {entry['target_id']}"
+        )

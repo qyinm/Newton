@@ -30,6 +30,26 @@ def test_run_scenario_writes_result_and_report(tmp_path: Path):
     assert "# QA Report: web-login-smoke" in report_path.read_text()
 
 
+def test_run_scenario_appends_local_run_index_entry(tmp_path: Path):
+    scenario = load_scenario(Path("tests/fixtures/scenarios/web_login.yaml"))
+
+    result = run_scenario(scenario, target_id="web", run_dir=tmp_path, backend_name="dry-run")
+
+    index_path = tmp_path / "index.jsonl"
+    entries = [json.loads(line) for line in index_path.read_text().splitlines()]
+    assert entries == [
+        {
+            "run_id": result.run_id,
+            "scenario_id": "web-login-smoke",
+            "target_id": "web",
+            "status": "passed",
+            "result_path": str(tmp_path / result.run_id / "result.json"),
+            "report_path": str(tmp_path / result.run_id / "qa-report.md"),
+            "planning_provenance_path": None,
+        }
+    ]
+
+
 def test_run_scenario_links_accepted_plan_provenance_in_result_and_report(tmp_path: Path):
     scenario_path = Path("tests/fixtures/scenarios/web_login.yaml")
     scenario = load_scenario(scenario_path)

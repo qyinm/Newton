@@ -7,6 +7,7 @@ from newton.backends.base import DryRunBackend, ExecutionBackend
 from newton.models import Platform, RunResult, Scenario, ScenarioTarget
 from newton.plan_provenance import planning_metadata_from_provenance
 from newton.reporting import render_markdown_report
+from newton.run_index import append_run_index
 
 
 def find_target(scenario: Scenario, target_id: str) -> ScenarioTarget:
@@ -74,4 +75,5 @@ def run_scenario(
     actual_run_dir.mkdir(parents=True, exist_ok=True)
     (actual_run_dir / "result.json").write_text(result.model_dump_json(indent=2))
     (actual_run_dir / "qa-report.md").write_text(render_markdown_report(result))
+    append_run_index(result=result, run_dir=run_dir)
     return result

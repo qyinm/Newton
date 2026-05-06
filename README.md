@@ -15,6 +15,25 @@ python -m pip install -e '.[dev,web]'
 python -m playwright install chromium
 ```
 
+## Plan a QA Bundle
+
+Generate a minimal PRD-style planning bundle from markdown product/ticket context:
+
+```bash
+newton qa plan-bundle qa/inputs/login-ticket.md --out qa/plans
+```
+
+Outputs:
+
+```text
+qa/plans/login/qa-scope.md
+qa/plans/login/checklist.md
+qa/plans/login/risk-map.md
+qa/plans/login/manifest.json
+```
+
+The bundle is deterministic and does not call an external agent.
+
 ## Plan a Scenario
 
 Generate a scenario draft from markdown product/ticket context. The default `template` agent is deterministic; `codex` and `claude` use the same external-agent YAML contract:
@@ -80,8 +99,21 @@ The run `result.json` and `qa-report.md` include a small `planning`/Planning Pro
 Outputs:
 
 ```text
+qa/runs/index.jsonl
 qa/runs/run_*/result.json
 qa/runs/run_*/qa-report.md
+```
+
+List local run history:
+
+```bash
+newton qa runs --out qa/runs
+```
+
+Expected:
+
+```text
+run_e213334d75db  passed  login-smoke  web
 ```
 
 ## Web Run

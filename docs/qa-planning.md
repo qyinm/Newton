@@ -1,6 +1,39 @@
 # QA Planning
 
-`newton qa plan` is Newton's planning-layer command. It converts markdown product or ticket context into a validated Newton scenario YAML draft.
+Newton exposes two planning-layer commands:
+
+- `newton qa plan-bundle`: converts markdown product or ticket context into a minimal QA planning bundle.
+- `newton qa plan`: converts markdown product or ticket context into a validated Newton scenario YAML draft.
+
+## Planning bundle
+
+Use `plan-bundle` when you want PRD-style QA planning artifacts rather than an executable scenario:
+
+```bash
+newton qa plan-bundle qa/inputs/login-ticket.md --out qa/plans
+```
+
+Output:
+
+```text
+qa/plans/login/qa-scope.md
+qa/plans/login/checklist.md
+qa/plans/login/risk-map.md
+qa/plans/login/manifest.json
+```
+
+The bundle is intentionally small and deterministic:
+
+- `qa-scope.md`: source, goal, in-scope, and out-of-scope summary.
+- `checklist.md`: manual checklist derived from acceptance criteria bullets.
+- `risk-map.md`: one minimal functional P0 risk row.
+- `manifest.json`: machine-readable paths for the bundle artifacts.
+
+It does not call Codex, Claude, or any external agent.
+
+## Scenario planning
+
+`newton qa plan` is Newton's scenario planning command. It converts markdown product or ticket context into a validated Newton scenario YAML draft.
 
 ## MVP scope
 

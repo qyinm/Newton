@@ -108,6 +108,51 @@ def test_qa_run_accepts_plan_provenance_option(tmp_path: Path):
     payload = json.loads(result_paths[0].read_text())
     assert payload["planning"]["provenance_path"] == str(provenance_path)
     assert payload["planning"]["agent"] == "template"
+    index_entries = [json.loads(line) for line in (tmp_path / "runs" / "index.jsonl").read_text().splitlines()]
+    assert index_entries[0]["planning_provenance_path"] == str(provenance_path)
+
+
+def test_qa_runs_lists_local_run_index(tmp_path: Path):
+    first = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "dry-run",
+            "--out",
+            str(tmp_path / "runs"),
+        ],
+    )
+    second = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "dry-run",
+            "--out",
+            str(tmp_path / "runs"),
+        ],
+    )
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+
+    result = CliRunner().invoke(app, ["qa", "runs", "--out", str(tmp_path / "runs")])
+
+    assert result.exit_code == 0
+    lines = result.stdout.strip().splitlines()
+    assert len(lines) == 2
+    for line in lines:
+        assert "passed" in line
+        assert "web-login-smoke" in line
+        assert "web" in line
 
 
 def test_qa_run_rejects_rejected_plan_provenance(tmp_path: Path):
@@ -149,6 +194,30 @@ def test_qa_run_rejects_rejected_plan_provenance(tmp_path: Path):
     combined_output = result.stdout + result.stderr
     assert "plan provenance must be accepted" in combined_output
     assert not (tmp_path / "runs").exists()
+
+
+def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert f"bundle: {tmp_path / 'login'}" in result.stdout
+    assert (tmp_path / "login" / "qa-scope.md").exists()
+    assert (tmp_path / "login" / "checklist.md").exists()
+    assert (tmp_path / "login" / "risk-map.md").exists()
+    assert (tmp_path / "login" / "manifest.json").exists()
+
+    manifest = json.loads((tmp_path / "login" / "manifest.json").read_text())
+    assert manifest["plan_id"] == "login"
+    assert manifest["input_path"] == "tests/fixtures/inputs/login_ticket.md"
 
 
 def test_qa_plan_generates_valid_scenario(tmp_path: Path):
