@@ -75,13 +75,36 @@ def test_validate_planning_bundle_rejects_missing_baseline_risk(tmp_path: Path):
         out_dir=tmp_path,
     )
     risk_map = (bundle_dir / "risk-map.md").read_text()
-    risk_map = risk_map.replace(
-        "| network failure | P1 | Slow, offline, timeout, and retry states can hide incomplete error handling |\n",
-        "",
+    risk_map = "\n".join(
+        line for line in risk_map.splitlines() if not line.startswith("| network failure |")
     )
     (bundle_dir / "risk-map.md").write_text(risk_map)
 
     with pytest.raises(PlanningBundleValidationError, match="missing baseline risk: network failure"):
+        validate_planning_bundle(bundle_dir)
+
+
+def test_validate_planning_bundle_requires_baseline_risks_when_optional_risks_exist(tmp_path: Path):
+    bundle_dir = generate_planning_bundle(
+        Path("tests/fixtures/inputs/login_ticket.md"),
+        out_dir=tmp_path,
+    )
+    risk_map_path = bundle_dir / "risk-map.md"
+    risk_map_path.write_text(
+        """# Risk Map: Login
+
+| Area | Priority | Rationale | Source |
+| --- | --- | --- | --- |
+| functional | P0 | Login flow blocks core user access | generated PRD baseline risks |
+| edge case | P1 | Boundary inputs can break the flow. | generated PRD baseline risks |
+| network failure | P1 | Slow and offline states can hide failures. | generated PRD baseline risks |
+| permission/role | P1 | Role differences can expose access bugs. | generated PRD baseline risks |
+| policy conflict | P1 | Policy and product behavior may conflict. | generated PRD baseline risks |
+| data state | P1 | Data setup creates state risk. | `login_ticket.md#Acceptance criteria` |
+"""
+    )
+
+    with pytest.raises(PlanningBundleValidationError, match="missing baseline risk: regression"):
         validate_planning_bundle(bundle_dir)
 
 

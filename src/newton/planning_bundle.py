@@ -53,6 +53,20 @@ class MarkdownItem:
 
 
 @dataclass(frozen=True)
+class RiskEvidence:
+    text: str
+    source_reference: SourceReference
+
+
+@dataclass(frozen=True)
+class RiskMapRow:
+    area: str
+    priority: str
+    rationale: str
+    source: str
+
+
+@dataclass(frozen=True)
 class EstimateFactor:
     factor: str
     value: str
@@ -156,6 +170,28 @@ _DATA_SETUP_PATTERN = re.compile(
     r"\b(seed|fixture|test account|test user|sample data|test data|migration|backfill|import|export|paid invoice)\b",
     re.IGNORECASE,
 )
+_DATA_STATE_RISK_PATTERN = re.compile(
+    r"\b(state|status|record|records|locked|expired|missing|declined|suspended|active|inactive|valid|invalid|"
+    r"seed|fixture|test account|test user|sample data|test data|migration|backfill|import|export|paid invoice)\b",
+    re.IGNORECASE,
+)
+_ANALYTICS_LOGGING_RISK_PATTERN = re.compile(
+    r"\b(analytics?|events?|metrics?|logs|logging|telemetry|audit trail|tracking|instrumentation|"
+    r"log entry|log line|log file)\b",
+    re.IGNORECASE,
+)
+_LOCALIZATION_COPY_RISK_PATTERN = re.compile(
+    r"\b(copy|message|text|label|wording|locale|locales|localized|localization|translation|language|guidance)\b",
+    re.IGNORECASE,
+)
+_ACCESSIBILITY_RISK_PATTERN = re.compile(
+    r"\b(accessibility|a11y|screen reader|keyboard|aria|focus|contrast|alt text|tab order|voiceover)\b",
+    re.IGNORECASE,
+)
+_ENVIRONMENT_CONFIG_RISK_PATTERN = re.compile(
+    r"\b(config|configuration|feature flag|flag|secret|env var|environment variable|region)\b",
+    re.IGNORECASE,
+)
 
 
 def generate_planning_bundle(
@@ -190,7 +226,7 @@ def generate_planning_bundle(
     qa_scope_path.write_text(_render_scope(title, summary, all_source_paths, source_facts))
     checklist_path.write_text(_render_checklist(title, checklist_items))
     test_cases_path.write_text(_render_test_cases_csv(checklist_items))
-    risk_map_path.write_text(_render_risk_map(title))
+    risk_map_path.write_text(_render_risk_map(title, source_facts, markdown_sources))
     qa_estimate_path.write_text(
         _render_estimate(title, checklist_items, all_source_paths, source_facts, markdown_sources)
     )
@@ -555,20 +591,221 @@ def _render_test_cases_csv(items: list[str]) -> str:
     return output.getvalue()
 
 
-def _render_risk_map(title: str) -> str:
+def _render_risk_map(
+    title: str,
+    source_facts: SourceFacts,
+    markdown_sources: list[tuple[Path, str]],
+) -> str:
+    rows = [*_baseline_risk_rows(title), *_optional_risk_rows(source_facts, markdown_sources)]
+    rendered_rows = "\n".join(_render_risk_map_row(row) for row in rows)
     return f"""# Risk Map: {title}
 
-| Area | Priority | Rationale |
-| --- | --- | --- |
-| functional | P0 | {title} flow blocks core user access |
-| edge case | P1 | Boundary, empty, duplicate, and invalid inputs can break the flow outside the happy path |
-| network failure | P1 | Slow, offline, timeout, and retry states can hide incomplete error handling |
-| permission/role | P1 | Role or session differences can expose unauthorized access or blocked valid users |
-| policy conflict | P1 | Source policy or copy requirements may conflict with visible product behavior |
-| regression | P1 | Existing login and navigation paths can regress when this feature changes |
+| Area | Priority | Rationale | Source |
+| --- | --- | --- | --- |
+{rendered_rows}
 
 Source: generated PRD baseline risks
 """
+
+
+def _baseline_risk_rows(title: str) -> list[RiskMapRow]:
+    baseline_source = "generated PRD baseline risks"
+    return [
+        RiskMapRow("functional", "P0", f"{title} flow blocks core user access", baseline_source),
+        RiskMapRow(
+            "edge case",
+            "P1",
+            "Boundary, empty, duplicate, and invalid inputs can break the flow outside the happy path",
+            baseline_source,
+        ),
+        RiskMapRow(
+            "network failure",
+            "P1",
+            "Slow, offline, timeout, and retry states can hide incomplete error handling",
+            baseline_source,
+        ),
+        RiskMapRow(
+            "permission/role",
+            "P1",
+            "Role or session differences can expose unauthorized access or blocked valid users",
+            baseline_source,
+        ),
+        RiskMapRow(
+            "policy conflict",
+            "P1",
+            "Source policy or copy requirements may conflict with visible product behavior",
+            baseline_source,
+        ),
+        RiskMapRow(
+            "regression",
+            "P1",
+            "Existing login and navigation paths can regress when this feature changes",
+            baseline_source,
+        ),
+    ]
+
+
+def _optional_risk_rows(
+    source_facts: SourceFacts,
+    markdown_sources: list[tuple[Path, str]],
+) -> list[RiskMapRow]:
+    data_setup_items = [
+        RiskEvidence(item.text, item.source_reference)
+        for item in _extract_data_setup_items(markdown_sources)
+    ]
+    source_evidence = _dedupe_risk_evidence(
+        [
+            *_source_facts_to_risk_evidence(source_facts),
+            *_markdown_sources_to_risk_evidence(markdown_sources),
+        ]
+    )
+    optional_risks: list[tuple[str, str, list[RiskEvidence]]] = [
+        (
+            "data state",
+            "Data setup and state-specific records require coverage",
+            [
+                *data_setup_items,
+                *_matching_risk_evidence(
+                    source_evidence,
+                    _DATA_STATE_RISK_PATTERN,
+                    section_keys={"data", "data_setup", "test_data", "fixtures"},
+                ),
+            ],
+        ),
+        (
+            "analytics/logging",
+            "Instrumentation or logs can silently break",
+            _matching_risk_evidence(
+                source_evidence,
+                _ANALYTICS_LOGGING_RISK_PATTERN,
+                section_keys={"analytics", "logging", "logs", "observability", "telemetry"},
+            ),
+        ),
+        (
+            "localization/copy",
+            "Visible copy or localization rules can drift from source expectations",
+            _matching_risk_evidence(
+                source_evidence,
+                _LOCALIZATION_COPY_RISK_PATTERN,
+                section_keys={"copy", "localization", "locale", "locales", "translations"},
+            ),
+        ),
+        (
+            "accessibility",
+            "Accessibility behavior needs explicit manual coverage",
+            _matching_risk_evidence(
+                source_evidence,
+                _ACCESSIBILITY_RISK_PATTERN,
+                section_keys={"accessibility", "a11y"},
+            ),
+        ),
+        (
+            "environment config",
+            "Environment-specific configuration can diverge",
+            [
+                *[
+                    RiskEvidence(fact.text, fact.source_reference)
+                    for fact in source_facts.environments
+                ],
+                *_matching_risk_evidence(
+                    source_evidence,
+                    _ENVIRONMENT_CONFIG_RISK_PATTERN,
+                    section_keys={
+                        "environment",
+                        "environments",
+                        "environment_config",
+                        "test_environments",
+                        "test_matrix",
+                    },
+                ),
+            ],
+        ),
+    ]
+
+    rows: list[RiskMapRow] = []
+    for area, rationale_prefix, evidence_items in optional_risks:
+        evidence_items = _dedupe_risk_evidence(evidence_items)
+        if not evidence_items:
+            continue
+        evidence_text = _join_risk_evidence_texts(evidence_items)
+        rows.append(
+            RiskMapRow(
+                area=area,
+                priority="P1",
+                rationale=f"{rationale_prefix}: {evidence_text}",
+                source=_join_risk_evidence_sources(evidence_items),
+            )
+        )
+    return rows
+
+
+def _source_facts_to_risk_evidence(source_facts: SourceFacts) -> list[RiskEvidence]:
+    evidence: list[RiskEvidence] = []
+    for _, facts in _source_fact_groups(source_facts):
+        evidence.extend(RiskEvidence(fact.text, fact.source_reference) for fact in facts)
+    return evidence
+
+
+def _markdown_sources_to_risk_evidence(markdown_sources: list[tuple[Path, str]]) -> list[RiskEvidence]:
+    evidence: list[RiskEvidence] = []
+    for path, markdown in markdown_sources:
+        evidence.extend(
+            RiskEvidence(item.text, item.source_reference)
+            for item in _iter_markdown_items(path, markdown)
+        )
+    return evidence
+
+
+def _matching_risk_evidence(
+    evidence_items: list[RiskEvidence],
+    text_pattern: re.Pattern[str],
+    *,
+    section_keys: set[str],
+) -> list[RiskEvidence]:
+    return [
+        evidence
+        for evidence in evidence_items
+        if text_pattern.search(evidence.text)
+        or _section_key(evidence.source_reference.section) in section_keys
+    ]
+
+
+def _dedupe_risk_evidence(evidence_items: list[RiskEvidence]) -> list[RiskEvidence]:
+    deduped: list[RiskEvidence] = []
+    seen: set[tuple[str, str]] = set()
+    for evidence in evidence_items:
+        dedupe_key = (evidence.text.casefold(), evidence.source_reference.display())
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        deduped.append(evidence)
+    return deduped
+
+
+def _join_risk_evidence_texts(evidence_items: list[RiskEvidence]) -> str:
+    values = [evidence.text for evidence in evidence_items[:3]]
+    if len(evidence_items) > 3:
+        values.append(f"+{len(evidence_items) - 3} more")
+    return "; ".join(values)
+
+
+def _join_risk_evidence_sources(evidence_items: list[RiskEvidence]) -> str:
+    unique_sources: list[str] = []
+    for evidence in evidence_items:
+        source = evidence.source_reference.display()
+        if source not in unique_sources:
+            unique_sources.append(source)
+    return ", ".join(f"`{_markdown_table_cell(source)}`" for source in unique_sources)
+
+
+def _render_risk_map_row(row: RiskMapRow) -> str:
+    return (
+        "| "
+        f"{_markdown_table_cell(row.area)} | "
+        f"{_markdown_table_cell(row.priority)} | "
+        f"{_markdown_table_cell(row.rationale)} | "
+        f"{_markdown_table_cell(row.source)} |"
+    )
 
 
 def _estimate_factors(

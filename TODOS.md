@@ -115,10 +115,10 @@ uv run --extra dev --extra web pytest tests/test_planning_bundle.py tests/test_a
 
 ### 5. Make risk maps source-aware and category-complete
 
-- [ ] Keep the baseline categories: functional, edge case, network failure, permission/role, policy conflict, and regression.
-- [ ] Add optional categories when source facts support them: data state, analytics/logging, localization/copy, accessibility, environment config.
-- [ ] Include source references and rationale for each non-baseline risk.
-- [ ] Add validation that required baseline risks remain present.
+- [x] Keep the baseline categories: functional, edge case, network failure, permission/role, policy conflict, and regression.
+- [x] Add optional categories when source facts support them: data state, analytics/logging, localization/copy, accessibility, environment config.
+- [x] Include source references and rationale for each non-baseline risk.
+- [x] Add validation that required baseline risks remain present.
 
 Acceptance:
 

@@ -74,6 +74,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     assert "| functional | P0 | Login flow blocks core user access |" in risk_map
     for category in ["edge case", "network failure", "permission/role", "policy conflict", "regression"]:
         assert f"| {category} |" in risk_map
+    assert "| analytics/logging |" not in risk_map
     assert "Source: generated PRD baseline risks" in risk_map
 
     estimate = (bundle_dir / "qa-estimate.md").read_text()
@@ -238,6 +239,64 @@ def test_generate_planning_bundle_extracts_structured_facts_from_multiple_source
     assert "| retest_count | 3 passes | 2 environment pass(es) plus 1 regression retest pass(es). |" in estimate
     assert "Estimated QA effort: M (2-4 hours)" in estimate
     assert "Score band: 5-9 points" in estimate
+
+
+def test_generate_planning_bundle_adds_source_aware_optional_risk_categories(tmp_path: Path):
+    ticket = tmp_path / "release.md"
+    ticket.write_text(
+        """# Billing Observability Release
+
+## Scope
+- Validate billing settings with visible copy, analytics events, and configured environments.
+
+## Requirements
+- Checkout state handles expired card records.
+- Save action emits analytics event `billing_settings_saved`.
+- Error copy is localized for English and Korean locales.
+- Keyboard focus returns to the first invalid field.
+
+## Environments
+- staging
+- production
+
+## Data Setup
+- Seed test accounts for trial and expired-card states.
+"""
+    )
+
+    bundle_dir = generate_planning_bundle(ticket, out_dir=tmp_path / "plans")
+
+    risk_map = (bundle_dir / "risk-map.md").read_text()
+    assert "| Area | Priority | Rationale | Source |" in risk_map
+    for category in [
+        "functional",
+        "edge case",
+        "network failure",
+        "permission/role",
+        "policy conflict",
+        "regression",
+    ]:
+        assert f"| {category} |" in risk_map
+
+    optional_categories = [
+        "data state",
+        "analytics/logging",
+        "localization/copy",
+        "accessibility",
+        "environment config",
+    ]
+    for category in optional_categories:
+        row = next(line for line in risk_map.splitlines() if line.startswith(f"| {category} |"))
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        assert len(cells) == 4
+        assert cells[2]
+        assert cells[3].startswith("`release.md#")
+
+    assert "Checkout state handles expired card records." in risk_map
+    assert "Save action emits analytics event" in risk_map
+    assert "Error copy is localized" in risk_map
+    assert "Keyboard focus returns" in risk_map
+    assert "staging" in risk_map
 
 
 def test_generate_planning_bundle_scores_large_inputs_as_l(tmp_path: Path):
