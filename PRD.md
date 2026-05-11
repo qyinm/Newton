@@ -2,11 +2,13 @@
 
 ## 1. Summary
 
-Sprint QA Copilot, implemented as **Newton**, is an **agent-native QA harness** for mobile and web product teams.
+Sprint QA Copilot, implemented as **Newton**, is an **agent-native, web-first QA harness** for product teams.
+
+The v0.1 release promise is: **Generate a source-backed QA plan and run web smoke scenarios with evidence.**
 
 Newton is designed to run on top of coding agents such as **Claude Code**, **Codex CLI**, and **Hermes Agent**, while also remaining usable from a plain terminal or CI job. Instead of relying on one-off prompting, Newton gives those agents a replayable QA contract: structured inputs, explicit commands, normalized run artifacts, and evidence-backed outputs.
 
-It helps QA engineers turn upcoming sprint context into defensible QA estimates, test cases, checklists, risk maps, executable scenarios, and bug ticket drafts. The first version does not try to replace human QA judgment. It helps QA know what to test, why it matters, how long it should take, what risks may be missed, and how to execute deterministic checks when the scenario is stable enough.
+It helps QA engineers turn upcoming sprint context into defensible QA estimates, test cases, checklists, risk maps, web smoke scenarios, and bug ticket drafts. The first version does not try to replace human QA judgment. It helps QA know what to test, why it matters, how long it should take, what risks may be missed, and how to execute deterministic web checks when the scenario is stable enough.
 
 The product starts from a real QA workflow:
 
@@ -92,7 +94,7 @@ The first version will not:
 - Depend on a single agent runtime or chat product.
 - Hide QA execution behind opaque prompt-only behavior.
 
-Those are later layers. The first product is the QA intelligence layer, not the execution runner.
+Those are later layers. The first product is the web-first QA planning and execution loop, not a general-purpose execution runner.
 
 Newton should be agent-native, but not agent-dependent: the same artifacts and commands should work whether the caller is Hermes, Claude Code, Codex, or a human in the terminal.
 
@@ -131,25 +133,36 @@ The agent can draft, classify, and suggest. Final QA scope, severity, and releas
 
 ## 7. MVP Scope
 
-The MVP is split into two layers so the harness identity stays clear.
+The v0.1 MVP locks one release-quality loop: generate a source-backed QA plan, create a web smoke scenario, run it locally or against staging, and preserve evidence that another human or agent can inspect.
 
-### MVP 1: Executable QA Harness
+### MVP 1: Web-First QA Planning and Execution
 
-This is the first build priority.
+This is the first release priority.
 
-Newton must accept structured scenario input, validate it, run deterministic checks where possible, and persist normalized artifacts that any agent can inspect or replay.
+Newton must accept product or ticket context, produce source-backed QA planning artifacts, accept structured scenario input, validate it, run deterministic web checks where possible, and persist normalized artifacts that any agent can inspect or replay.
 
 Required outputs for MVP 1:
 
+- `qa-scope.md`
+- `qa-estimate.md`
+- `checklist.md`
+- `test-cases.csv`
 - `qa/runs/<run_id>/result.json`
 - `qa/runs/<run_id>/qa-report.md`
 - evidence files when available
 
 Required commands for MVP 1:
 
+- `newton qa plan-bundle`
+- `newton qa bundle-validate`
+- `newton qa plan`
 - `newton qa validate`
 - `newton qa run`
 - `newton qa report`
+
+Release-quality execution target for MVP 1:
+
+- web smoke scenarios through Playwright
 
 Primary runtime targets for MVP 1:
 
@@ -159,9 +172,9 @@ Primary runtime targets for MVP 1:
 - Codex CLI
 - Hermes Agent
 
-### MVP 2: QA Planning Intelligence
+### MVP 2: Broader QA Planning Intelligence
 
-After the harness contract is stable, Newton expands the planning layer: QA scope, estimate, checklist, risk map, bug draft, and automation candidate generation.
+After the v0.1 loop is stable, Newton expands planning quality, source extraction depth, review gates, bug-draft workflows, and automation candidate generation.
 
 ### 7.1 Input Collection
 
@@ -446,10 +459,10 @@ The MVP is acceptable when a user can:
 - GitHub PR diff integration
 - Slack summary ingestion
 
-### V3: Execution Harness
+### V3: Broader Execution Harness
 
-- Maestro runner
-- Playwright runner
+- deeper Playwright web runner coverage
+- experimental Maestro runner
 - simulator/device run logs
 - screenshot/video evidence
 - JUnit export
@@ -473,7 +486,7 @@ The MVP is acceptable when a user can:
 
 ## 14. Open Questions
 
-- Is the first target mobile app QA, web QA, or both?
+- Which post-v0.1 mobile QA path should be explored first: Maestro compile artifacts, simulator execution, or another adapter?
 - Should the primary output be test cases, checklist, or QA estimate?
 - Which tool matters first: Figma, Notion, Jira/Linear, or GitHub?
 - Should the first product be CLI-only or include a local web UI?
@@ -483,12 +496,13 @@ The MVP is acceptable when a user can:
 
 ## 15. Recommended First Build
 
-Build the file-based CLI and executable harness first.
+Build the file-based CLI and web-first executable harness first.
 
 The first demo should show Newton working as a QA harness that can be called from a terminal or an agent runtime.
 
 The first demo should take one real sprint feature or stable smoke flow and produce:
 
+- source-backed QA planning artifacts
 - validated scenario input
 - `qa/runs/<run_id>/result.json`
 - `qa/runs/<run_id>/qa-report.md`
@@ -503,5 +517,4 @@ Then the planning layer should produce:
 - `test-cases.csv`
 - `bug-ticket-draft.md`
 
-Do not start with full E2E automation or a hosted platform. The first value is a replayable agent-native QA harness with deterministic artifacts; the second value is helping QA understand, estimate, and design the test scope.
-
+Do not start with full E2E automation or a hosted platform. The first value is a replayable agent-native QA harness that generates source-backed plans and runs web smoke scenarios with deterministic evidence; broader execution targets remain roadmap work.

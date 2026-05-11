@@ -2,6 +2,12 @@
 
 Newton exposes a stable CLI contract for agent runtimes and humans alike.
 
+## v0.1 Release Contract
+
+Newton v0.1 is web-first: generate a source-backed QA plan, draft a web smoke scenario, run it with evidence, and return normalized artifacts another agent can inspect.
+
+The release-quality execution backend is Playwright for web scenarios. Cross-platform targets such as `web,ios` remain an experimental roadmap surface where the CLI supports draft or adapter artifacts; they are not the v0.1 execution promise.
+
 ## Supported Callers
 
 - Claude Code

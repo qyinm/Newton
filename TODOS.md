@@ -32,10 +32,10 @@ The release should not try to prove mobile E2E, remote runners, or selector self
 
 ### 1. Lock the v0.1 release promise
 
-- [ ] Define the exact release promise in `README.md`: "Generate a source-backed QA plan and run web smoke scenarios with evidence."
-- [ ] Add a short "What Newton is not yet" section: not mobile E2E, not a hosted runner, not a full test management system, not an automatic release approver.
-- [ ] Align `PRD.md`, `README.md`, and `docs/agent-runtime-usage.md` so the first release consistently says web-first execution.
-- [ ] Move cross-platform wording into roadmap language where it is not part of v0.1 behavior.
+- [x] Define the exact release promise in `README.md`: "Generate a source-backed QA plan and run web smoke scenarios with evidence."
+- [x] Add a short "What Newton is not yet" section: not mobile E2E, not a hosted runner, not a full test management system, not an automatic release approver.
+- [x] Align `PRD.md`, `README.md`, and `docs/agent-runtime-usage.md` so the first release consistently says web-first execution.
+- [x] Move cross-platform wording into roadmap language where it is not part of v0.1 behavior.
 
 Acceptance:
 

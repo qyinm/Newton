@@ -143,7 +143,7 @@ Supported deterministic template flow:
 
 - login smoke test
 - web target
-- optional web+iOS cross-platform target
+- experimental web+iOS roadmap draft, outside the v0.1 web-first release promise
 
 Input requirements:
 
@@ -176,7 +176,7 @@ Output:
 qa/scenarios/login-smoke.generated.yaml
 ```
 
-Cross-platform draft:
+Experimental roadmap draft, not part of the v0.1 web-first execution promise:
 
 ```bash
 newton qa plan qa/inputs/login-ticket.md --target web,ios --out qa/scenarios

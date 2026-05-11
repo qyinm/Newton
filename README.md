@@ -1,6 +1,15 @@
 # Newton QA
 
-Newton is an agent-native QA harness that turns sprint context into executable web/iOS scenarios and evidence-backed QA reports.
+Newton v0.1 release promise: **Generate a source-backed QA plan and run web smoke scenarios with evidence.**
+
+Newton is an agent-native, web-first QA harness that turns sprint context into source-backed planning artifacts, executable web smoke scenarios, and evidence-backed QA reports.
+
+## What Newton is not yet
+
+- Not mobile E2E.
+- Not a hosted runner.
+- Not a full test management system.
+- Not an automatic release approver.
 
 ## Install
 
@@ -177,7 +186,7 @@ qa/scenarios/login_ticket.codex.raw.txt
 qa/scenarios/login_ticket.codex.plan.json
 ```
 
-For a cross-platform draft:
+Experimental roadmap draft, not part of the v0.1 web-first release promise:
 
 ```bash
 newton qa plan qa/inputs/login-ticket.md --target web,ios --out qa/scenarios
@@ -306,8 +315,8 @@ newton qa bug-draft qa/dogfood/login/plan/qa-run-tracker.md \
 
 The committed dogfood run set includes one passing Playwright run and one failing Playwright run with screenshot and trace evidence.
 
-## Current Backends
+## Backends
 
 - `dry-run`: validates the full Newton pipeline without opening a browser or simulator
-- `playwright`: executes web scenarios
-- `maestro`: compiles Newton iOS bindings to Maestro flow YAML and saves it as an artifact
+- `playwright`: executes web scenarios and is the v0.1 release-quality backend
+- `maestro`: experimental roadmap adapter that compiles Newton iOS bindings to Maestro flow YAML and saves it as an artifact; it is not part of the v0.1 release promise
