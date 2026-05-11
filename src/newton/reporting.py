@@ -43,6 +43,16 @@ def render_markdown_report(result: RunResult) -> str:
         f"**Platform:** {result.platform}",
         f"**Status:** {result.status}",
         "",
+        "## Run Summary",
+        "",
+        "| Total | Passed | Failed | Skipped | Artifacts | Duration |",
+        "| --- | --- | --- | --- | --- | --- |",
+        (
+            f"| {result.summary.total_steps} | {result.summary.passed_steps} | "
+            f"{result.summary.failed_steps} | {result.summary.skipped_steps} | "
+            f"{result.summary.artifact_count} | {_format_duration(result.summary.total_duration_ms)} |"
+        ),
+        "",
         "## Step Results",
         "",
         "| Step | Action | Status | Error |",
@@ -61,6 +71,9 @@ def render_markdown_report(result: RunResult) -> str:
         lines.extend(["", *planning_lines])
 
     if not result.passed:
+        diagnosis_lines = _render_failure_diagnosis(result)
+        if diagnosis_lines:
+            lines.extend(["", *diagnosis_lines])
         failed = [step for step in result.steps if step.status == "failed"]
         first_error = failed[0].error if failed else "Unknown failure"
         lines.extend(
@@ -91,6 +104,10 @@ def render_markdown_report(result: RunResult) -> str:
 
     lines.append("")
     return "\n".join(lines)
+
+
+def _format_duration(duration_ms: int | None) -> str:
+    return "-" if duration_ms is None else f"{duration_ms} ms"
 
 
 def _render_evidence_sections(result: RunResult) -> list[str]:
@@ -145,3 +162,26 @@ def _render_evidence_list(evidence: list[EvidenceArtifact]) -> list[str]:
         detail = f" — {artifact.description}" if artifact.description else ""
         rendered.append(f"- `{artifact.kind}`: `{artifact.path}`{detail}")
     return rendered
+
+
+def _render_failure_diagnosis(result: RunResult) -> list[str]:
+    failed = [step for step in result.steps if step.status == "failed"]
+    if not failed:
+        return []
+    first_failed = failed[0]
+    diagnostic_evidence = [
+        artifact
+        for artifact in result.evidence
+        if artifact.kind in {"console", "network", "trace", "video"}
+    ]
+    lines = [
+        "## Failure Diagnosis",
+        "",
+        f"**First failed step:** `{first_failed.id}`",
+        f"**Action:** `{first_failed.action}`",
+        f"**Error:** {first_failed.error or 'Unknown failure'}",
+    ]
+    if diagnostic_evidence:
+        lines.extend(["", "### Diagnostic Artifacts"])
+        lines.extend(_render_evidence_list(diagnostic_evidence))
+    return lines

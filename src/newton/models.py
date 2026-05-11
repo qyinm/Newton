@@ -484,6 +484,33 @@ class StepResult(BaseModel):
     evidence: list[EvidenceArtifact] = Field(default_factory=list)
 
 
+class RunSummary(BaseModel):
+    total_steps: int
+    passed_steps: int
+    failed_steps: int
+    skipped_steps: int
+    artifact_count: int
+    total_duration_ms: int | None = None
+    first_error: str | None = None
+
+    @staticmethod
+    def from_result(result: "RunResult") -> "RunSummary":
+        artifact_keys = {(artifact.kind, artifact.path) for artifact in result.evidence}
+        for step in result.steps:
+            artifact_keys.update((artifact.kind, artifact.path) for artifact in step.evidence)
+        durations = [step.duration_ms for step in result.steps if step.duration_ms is not None]
+        first_failed_step = next((step for step in result.steps if step.status == "failed"), None)
+        return RunSummary(
+            total_steps=len(result.steps),
+            passed_steps=sum(1 for step in result.steps if step.status == "passed"),
+            failed_steps=sum(1 for step in result.steps if step.status == "failed"),
+            skipped_steps=sum(1 for step in result.steps if step.status == "skipped"),
+            artifact_count=len(artifact_keys),
+            total_duration_ms=sum(durations) if durations else None,
+            first_error=first_failed_step.error if first_failed_step else None,
+        )
+
+
 class RunResult(BaseModel):
     contract_version: Literal["v0.1"] = ARTIFACT_CONTRACT_VERSION
     run_id: str
@@ -493,7 +520,14 @@ class RunResult(BaseModel):
     status: RunStatus
     steps: list[StepResult]
     evidence: list[EvidenceArtifact] = Field(default_factory=list)
+    summary: RunSummary | None = None
     planning: dict[str, str] | None = None
+
+    @model_validator(mode="after")
+    def ensure_summary(self) -> "RunResult":
+        if self.summary is None:
+            self.summary = RunSummary.from_result(self)
+        return self
 
     @property
     def passed(self) -> bool:

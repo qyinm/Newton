@@ -141,9 +141,14 @@ evidence:
 ```
 
 Evidence is normalized into `qa/runs/<run_id>/result.json` and summarized in `qa-report.md`.
-For Playwright failures, screenshot and trace artifact paths are stored relative to the run directory, for example:
+`result.json` includes a compact `summary` object with step totals, artifact count, total duration when available, and the first failure error.
+All Playwright artifact paths are stored relative to the run directory. For example:
 
 ```text
 failure-step-005-assert-dashboard.png
 playwright-trace.zip
+console-errors.jsonl
+network-failures.jsonl
 ```
+
+When `screenshots: after_each_step`, Newton stores `step-<index>-<step-id>.png` for each completed step. When `video: true`, the Playwright `.webm` session recording is attached to both `result.json` and `qa-report.md`. When `logs: true`, browser console errors and failed network requests are written as compact JSONL diagnostic artifacts when those events occur.

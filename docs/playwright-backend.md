@@ -137,13 +137,29 @@ When a step fails and `evidence.screenshots` is `on_failure`, Newton stores:
 failure-step-<index>-<step-id>.png
 ```
 
+When `evidence.screenshots` is `after_each_step`, Newton stores a screenshot for every completed step and the failing step when applicable:
+
+```text
+step-<index>-<step-id>.png
+failure-step-<index>-<step-id>.png
+```
+
 When `evidence.traces: true`, Newton stores a Playwright trace for failed runs:
 
 ```text
 playwright-trace.zip
 ```
 
-Both `result.json` and `qa-report.md` reference evidence paths relative to the run directory.
+When `evidence.video: true`, Newton records the Playwright session video and attaches the relative `.webm` path to both `result.json` and `qa-report.md`.
+
+When `evidence.logs: true`, Newton captures browser console errors and failed network requests when they occur:
+
+```text
+console-errors.jsonl
+network-failures.jsonl
+```
+
+`result.json` includes a compact `summary` object with step totals, artifact count, total duration when available, and the first failure error. Both `result.json` and `qa-report.md` reference evidence paths relative to the run directory. The markdown report also includes a run summary and failure diagnosis section for failed runs.
 
 Open a trace with:
 

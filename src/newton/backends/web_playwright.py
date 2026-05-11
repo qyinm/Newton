@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
@@ -111,6 +112,8 @@ class PlaywrightBackend:
         run_dir.mkdir(parents=True, exist_ok=True)
         step_results: list[StepResult] = []
         run_evidence: list[EvidenceArtifact] = []
+        console_errors: list[dict[str, Any]] = []
+        network_failures: list[dict[str, Any]] = []
         status = "passed"
         traces_enabled = scenario.evidence.traces
         trace_path = run_dir / "playwright-trace.zip"
@@ -122,8 +125,12 @@ class PlaywrightBackend:
             if traces_enabled:
                 context.tracing.start(screenshots=True, snapshots=True, sources=True)
             page = context.new_page()
+            if scenario.evidence.logs:
+                page.on("console", lambda message: _record_console_error(console_errors, message))
+                page.on("requestfailed", lambda request: _record_request_failure(network_failures, request))
             page.set_default_timeout(runtime.timeout_ms)
             page.set_default_navigation_timeout(runtime.timeout_ms)
+            video = page.video
             try:
                 for index, step in enumerate(scenario.steps, start=1):
                     start = monotonic()
@@ -135,12 +142,25 @@ class PlaywrightBackend:
                             retries=runtime.retries,
                             timeout_ms=self._step_timeout_ms(step, runtime),
                         )
+                        step_evidence: list[EvidenceArtifact] = []
+                        if scenario.evidence.screenshots == "after_each_step":
+                            screenshot_artifact = self._capture_step_screenshot(
+                                page,
+                                run_dir,
+                                index=index,
+                                step_id=step.id,
+                                prefix="step",
+                                description=f"Screenshot after step {step.id}",
+                            )
+                            run_evidence.append(screenshot_artifact)
+                            step_evidence.append(screenshot_artifact)
                         step_results.append(
                             StepResult(
                                 id=step.id,
                                 action=step.action,
                                 status="passed",
                                 duration_ms=int((monotonic() - start) * 1000),
+                                evidence=step_evidence,
                             )
                         )
                     except Exception as exc:  # noqa: BLE001
@@ -167,12 +187,12 @@ class PlaywrightBackend:
                         status = "failed"
                         step_evidence: list[EvidenceArtifact] = []
                         if scenario.evidence.screenshots in {"on_failure", "after_each_step"}:
-                            screenshot_name = f"failure-step-{index:03d}-{step.id}.png"
-                            screenshot = run_dir / screenshot_name
-                            page.screenshot(path=str(screenshot), full_page=True)
-                            screenshot_artifact = EvidenceArtifact(
-                                kind="screenshot",
-                                path=screenshot_name,
+                            screenshot_artifact = self._capture_step_screenshot(
+                                page,
+                                run_dir,
+                                index=index,
+                                step_id=step.id,
+                                prefix="failure-step",
                                 description=f"Failure screenshot for step {step.id}",
                             )
                             run_evidence.append(screenshot_artifact)
@@ -195,7 +215,7 @@ class PlaywrightBackend:
                                     status="skipped",
                                     error="Not executed because a previous step failed",
                                 )
-                            )
+                        )
                         break
             finally:
                 if traces_enabled:
@@ -209,6 +229,17 @@ class PlaywrightBackend:
                             )
                         )
                 context.close()
+                if scenario.evidence.video and video is not None:
+                    video_path = Path(video.path())
+                    run_evidence.append(
+                        EvidenceArtifact(
+                            kind="video",
+                            path=_relative_artifact_path(run_dir, video_path),
+                            description="Playwright session recording",
+                        )
+                    )
+                if scenario.evidence.logs:
+                    run_evidence.extend(_write_diagnostic_artifacts(run_dir, console_errors, network_failures))
                 browser.close()
 
         return RunResult(
@@ -219,6 +250,25 @@ class PlaywrightBackend:
             status=status,
             steps=step_results,
             evidence=run_evidence,
+        )
+
+    def _capture_step_screenshot(
+        self,
+        page,
+        run_dir: Path,
+        *,
+        index: int,
+        step_id: str,
+        prefix: str,
+        description: str,
+    ) -> EvidenceArtifact:
+        screenshot_name = f"{prefix}-{index:03d}-{step_id}.png"
+        screenshot = run_dir / screenshot_name
+        page.screenshot(path=str(screenshot), full_page=True)
+        return EvidenceArtifact(
+            kind="screenshot",
+            path=screenshot_name,
+            description=description,
         )
 
     def _runtime_config(self, target: ScenarioTarget) -> PlaywrightRuntimeConfig:
@@ -422,3 +472,73 @@ def _web_runtime_payload_from_device(device: dict[str, Any]) -> dict[str, Any]:
         if runtime_key in DEVICE_RUNTIME_KEYS:
             payload[runtime_key] = value
     return payload
+
+
+def _record_console_error(console_errors: list[dict[str, Any]], message) -> None:
+    if message.type != "error":
+        return
+    console_errors.append(
+        {
+            "type": message.type,
+            "text": message.text,
+            "location": message.location,
+        }
+    )
+
+
+def _record_request_failure(network_failures: list[dict[str, Any]], request) -> None:
+    failure = request.failure
+    if isinstance(failure, dict):
+        failure_text = failure.get("errorText")
+    else:
+        failure_text = failure
+    network_failures.append(
+        {
+            "method": request.method,
+            "url": request.url,
+            "failure": failure_text,
+        }
+    )
+
+
+def _write_diagnostic_artifacts(
+    run_dir: Path,
+    console_errors: list[dict[str, Any]],
+    network_failures: list[dict[str, Any]],
+) -> list[EvidenceArtifact]:
+    artifacts: list[EvidenceArtifact] = []
+    if console_errors:
+        path = run_dir / "console-errors.jsonl"
+        _write_jsonl(path, console_errors)
+        artifacts.append(
+            EvidenceArtifact(
+                kind="console",
+                path=path.name,
+                description=f"{len(console_errors)} browser console error(s)",
+            )
+        )
+    if network_failures:
+        path = run_dir / "network-failures.jsonl"
+        _write_jsonl(path, network_failures)
+        artifacts.append(
+            EvidenceArtifact(
+                kind="network",
+                path=path.name,
+                description=f"{len(network_failures)} failed network request(s)",
+            )
+        )
+    return artifacts
+
+
+def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.write_text(
+        "".join(f"{json.dumps(row, sort_keys=True)}\n" for row in rows),
+        encoding="utf-8",
+    )
+
+
+def _relative_artifact_path(run_dir: Path, artifact_path: Path) -> str:
+    try:
+        return str(artifact_path.relative_to(run_dir))
+    except ValueError:
+        return artifact_path.name

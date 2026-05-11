@@ -20,7 +20,7 @@ def test_render_markdown_report_for_failed_run():
                 evidence=[
                     EvidenceArtifact(
                         kind="screenshot",
-                        path="qa/runs/run_001/tap-login.png",
+                        path="tap-login.png",
                         description="Failure screenshot for step tap-login",
                     )
                 ],
@@ -29,8 +29,13 @@ def test_render_markdown_report_for_failed_run():
         evidence=[
             EvidenceArtifact(
                 kind="video",
-                path="qa/runs/run_001/session.webm",
+                path="session.webm",
                 description="Playwright session recording",
+            ),
+            EvidenceArtifact(
+                kind="console",
+                path="console-errors.jsonl",
+                description="1 browser console error(s)",
             )
         ],
     )
@@ -39,11 +44,17 @@ def test_render_markdown_report_for_failed_run():
 
     assert "# QA Report: login-smoke" in markdown
     assert "**Status:** failed" in markdown
+    assert "## Run Summary" in markdown
+    assert "| 2 | 1 | 1 | 0 | 3 | - |" in markdown
     assert "| tap-login | tap | failed | button not found |" in markdown
     assert "## Evidence" in markdown
-    assert "qa/runs/run_001/session.webm" in markdown
+    assert "session.webm" in markdown
+    assert "console-errors.jsonl" in markdown
     assert "## Step Evidence" in markdown
-    assert "qa/runs/run_001/tap-login.png" in markdown
+    assert "tap-login.png" in markdown
+    assert "## Failure Diagnosis" in markdown
+    assert "**First failed step:** `tap-login`" in markdown
+    assert "### Diagnostic Artifacts" in markdown
     assert "## Bug Draft" in markdown
     assert "button not found" in markdown
 

@@ -94,7 +94,10 @@ Run `result.json` requires:
 - `target_id`: executed target id
 - `platform`: `web` or `ios`
 - `status`: `passed`, `failed`, or `skipped`
+- `summary`: compact run totals for steps, artifacts, duration, and first failure
 - `steps`: ordered step result objects with `id`, `action`, `status`, optional `error`, optional `duration_ms`, and step-level `evidence`
 - `evidence`: run-level evidence artifact list
+
+Web evidence artifact paths are relative to the run directory. Supported v0.1 web evidence kinds are screenshot, trace, video, console, and network. Console and network artifacts are JSONL diagnostics written only when `evidence.logs: true` captures browser console errors or failed network requests.
 
 Linked runs may also include `planning` metadata with the provenance path, agent, input path, accepted scenario path, and validation status.

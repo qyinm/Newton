@@ -250,13 +250,13 @@ uv run --extra dev --extra web pytest tests/test_runner.py tests/test_reporting.
 
 ### 12. Make the evidence contract truthful and release-grade
 
-- [ ] Always write a compact run summary into `result.json`.
-- [ ] Store screenshots and traces with relative paths.
-- [ ] Either implement `video`, `logs`, and `screenshots: after_each_step` artifacts or remove those release-facing claims until implemented.
-- [ ] Attach video artifacts to `result.json` and `qa-report.md` if video capture remains enabled.
-- [ ] Add optional HTML report export or richer markdown sections for failure diagnosis.
-- [ ] Capture console errors and failed network requests when enabled.
-- [ ] Add tests for evidence paths, console/network evidence, video handling if enabled, after-each-step screenshots if enabled, and report rendering.
+- [x] Always write a compact run summary into `result.json`.
+- [x] Store screenshots and traces with relative paths.
+- [x] Either implement `video`, `logs`, and `screenshots: after_each_step` artifacts or remove those release-facing claims until implemented.
+- [x] Attach video artifacts to `result.json` and `qa-report.md` if video capture remains enabled.
+- [x] Add optional HTML report export or richer markdown sections for failure diagnosis.
+- [x] Capture console errors and failed network requests when enabled.
+- [x] Add tests for evidence paths, console/network evidence, video handling if enabled, after-each-step screenshots if enabled, and report rendering.
 
 Acceptance:
 

@@ -30,6 +30,15 @@ def test_run_scenario_writes_result_and_report(tmp_path: Path):
     result_payload = json.loads(result_path.read_text())
     assert result_payload["contract_version"] == ARTIFACT_CONTRACT_VERSION
     assert result_payload["scenario_id"] == "web-login-smoke"
+    assert result_payload["summary"] == {
+        "total_steps": 3,
+        "passed_steps": 3,
+        "failed_steps": 0,
+        "skipped_steps": 0,
+        "artifact_count": 0,
+        "total_duration_ms": None,
+        "first_error": None,
+    }
     assert "# QA Report: web-login-smoke" in report_path.read_text()
 
 

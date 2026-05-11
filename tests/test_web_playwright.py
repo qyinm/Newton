@@ -4,6 +4,7 @@ import contextlib
 import functools
 import http.server
 import importlib.util
+import json
 import socket
 import socketserver
 import threading
@@ -440,6 +441,77 @@ def test_playwright_backend_captures_screenshot_and_trace_on_failure(playwright_
     assert (run_dir / "playwright-trace.zip").exists()
 
 
+@pytest.mark.skipif(not HAS_PLAYWRIGHT, reason="Playwright package is required for browser integration")
+def test_playwright_backend_captures_release_grade_evidence(
+    diagnostic_playwright_fixture_url: str,
+    tmp_path: Path,
+):
+    scenario = Scenario.model_validate(
+        {
+            "scenario": {
+                "id": "web-evidence-diagnostics",
+                "title": "Web evidence diagnostics",
+            },
+            "targets": [
+                {
+                    "id": "web",
+                    "platform": "web",
+                    "backend": "playwright",
+                    "base_url": diagnostic_playwright_fixture_url,
+                }
+            ],
+            "steps": [
+                {"id": "open", "action": "navigate", "target": {"web": {"url": "/index.html"}}},
+                {"id": "wait-for-events", "action": "wait", "timeout_ms": 250},
+                {"id": "assert-ready", "action": "assert_visible", "target": {"web": {"text": "Ready"}}},
+            ],
+            "evidence": {
+                "screenshots": "after_each_step",
+                "video": True,
+                "logs": True,
+                "traces": False,
+            },
+        }
+    )
+    run_dir = tmp_path / "run_diagnostics"
+
+    result = PlaywrightBackend().run(scenario, scenario.targets[0], run_dir)
+
+    assert result.status == "passed"
+    screenshots = [
+        artifact
+        for artifact in result.evidence
+        if artifact.kind == "screenshot" and artifact.path.startswith("step-")
+    ]
+    assert [artifact.path for artifact in screenshots] == [
+        "step-001-open.png",
+        "step-002-wait-for-events.png",
+        "step-003-assert-ready.png",
+    ]
+    assert all((run_dir / artifact.path).exists() for artifact in screenshots)
+    assert all(not Path(artifact.path).is_absolute() for artifact in result.evidence)
+    assert all(
+        not Path(artifact.path).is_absolute()
+        for step in result.steps
+        for artifact in step.evidence
+    )
+
+    video = next(artifact for artifact in result.evidence if artifact.kind == "video")
+    assert video.path.endswith(".webm")
+    assert (run_dir / video.path).exists()
+
+    console = next(artifact for artifact in result.evidence if artifact.kind == "console")
+    assert console.path == "console-errors.jsonl"
+    console_rows = [json.loads(line) for line in (run_dir / console.path).read_text().splitlines()]
+    assert console_rows[0]["text"] == "Newton diagnostic console error"
+
+    network = next(artifact for artifact in result.evidence if artifact.kind == "network")
+    assert network.path == "network-failures.jsonl"
+    network_rows = [json.loads(line) for line in (run_dir / network.path).read_text().splitlines()]
+    assert network_rows[0]["method"] == "GET"
+    assert "127.0.0.1" in network_rows[0]["url"]
+
+
 @pytest.fixture
 def extended_playwright_fixture(tmp_path: Path) -> Iterator[tuple[str, Path]]:
     fixture_dir = tmp_path / "web"
@@ -514,6 +586,43 @@ def extended_playwright_fixture(tmp_path: Path) -> Iterator[tuple[str, Path]]:
     thread.start()
     try:
         yield f"http://127.0.0.1:{port}", upload_path
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+@pytest.fixture
+def diagnostic_playwright_fixture_url(tmp_path: Path) -> Iterator[str]:
+    fixture_dir = tmp_path / "diagnostic-web"
+    fixture_dir.mkdir()
+    failed_request_port = _free_port()
+    (fixture_dir / "index.html").write_text(
+        f"""<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Newton diagnostics fixture</title>
+  </head>
+  <body>
+    <main>Ready</main>
+    <script>
+      console.error('Newton diagnostic console error');
+      fetch('http://127.0.0.1:{failed_request_port}/missing').catch(() => {{}});
+    </script>
+  </body>
+</html>
+""",
+        encoding="utf-8",
+    )
+
+    port = _free_port()
+    handler = functools.partial(QuietSimpleHTTPRequestHandler, directory=str(fixture_dir))
+    server = socketserver.ThreadingTCPServer(("127.0.0.1", port), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{port}"
     finally:
         server.shutdown()
         server.server_close()
