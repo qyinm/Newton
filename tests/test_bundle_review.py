@@ -275,11 +275,11 @@ def test_dogfood_login_review_artifact_records_planning_quality_scores():
 
     assert payload["agent"] == "template"
     assert payload["bundle_path"] == "qa/dogfood/login/plan"
-    assert payload["score"] == 88
+    assert payload["score"] == 90
     assert payload["category_scores"] == {
         "coverage": 100,
         "source_grounding": 80,
-        "estimate_clarity": 80,
+        "estimate_clarity": 90,
         "risk_usefulness": 100,
         "automation_suitability": 80,
     }

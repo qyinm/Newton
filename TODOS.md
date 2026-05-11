@@ -559,14 +559,14 @@ Acceptance:
 
 ## Release Gates
 
-- [ ] `uv run --extra dev --extra web pytest` passes.
-- [ ] `claude plugin validate .claude-plugin/marketplace.json` passes.
-- [ ] `claude plugin validate plugins/newton` passes.
-- [ ] `uv build` produces wheel and sdist.
-- [ ] Built wheel installs in a clean environment and `newton version` works.
-- [ ] Web dogfood demo produces planning bundle, scenario, passing run, failing run, screenshot, trace, tracker update, and bug draft.
-- [ ] README first-run instructions are verified from a clean checkout.
-- [ ] Release notes describe exactly what is release-quality and what is experimental.
+- [x] `uv run --extra dev --extra web pytest` passes.
+- [x] `claude plugin validate .claude-plugin/marketplace.json` passes.
+- [x] `claude plugin validate plugins/newton` passes.
+- [x] `uv build` produces wheel and sdist.
+- [x] Built wheel installs in a clean environment and `newton version` works.
+- [x] Web dogfood demo produces planning bundle, scenario, passing run, failing run, screenshot, trace, tracker update, and bug draft.
+- [x] README first-run instructions are verified from a clean checkout.
+- [x] Release notes describe exactly what is release-quality and what is experimental.
 
 ## Scope Traps To Avoid
 
