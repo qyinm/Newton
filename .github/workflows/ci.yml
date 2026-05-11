@@ -19,3 +19,29 @@ jobs:
         run: python -m playwright install --with-deps chromium
       - name: Run tests
         run: pytest -v
+
+  package-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v5
+      - name: Build sdist and wheel
+        run: uv build
+      - name: Create clean smoke environment
+        run: python -m venv .smoke-venv
+      - name: Install built wheel with web extras
+        run: .smoke-venv/bin/python -m pip install 'dist/newton_qa-*.whl[web]'
+      - name: Install Chromium
+        run: .smoke-venv/bin/python -m playwright install --with-deps chromium
+      - name: Smoke installed CLI
+        run: |
+          .smoke-venv/bin/newton version
+          .smoke-venv/bin/newton qa validate qa/scenarios/web-login-smoke.yaml
+          .smoke-venv/bin/newton qa bundle-validate qa/plans/login
+          .smoke-venv/bin/newton qa run qa/scenarios/web-login-smoke.yaml \
+            --target web \
+            --backend dry-run \
+            --out /tmp/newton-package-smoke-runs

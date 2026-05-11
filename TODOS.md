@@ -372,10 +372,10 @@ uv run --extra dev --extra web pytest tests/test_cli.py tests/test_dogfood.py -v
 
 ### 18. Add release build validation
 
-- [ ] Add a CI job that builds sdist and wheel.
-- [ ] Install the built wheel in a clean environment.
-- [ ] Run `newton version`, `newton qa validate`, `newton qa bundle-validate`, and a dry-run scenario from the installed wheel.
-- [ ] Keep Playwright browser install in a separate CI step.
+- [x] Add a CI job that builds sdist and wheel.
+- [x] Install the built wheel in a clean environment.
+- [x] Run `newton version`, `newton qa validate`, `newton qa bundle-validate`, and a dry-run scenario from the installed wheel.
+- [x] Keep Playwright browser install in a separate CI step.
 
 Acceptance:
 
