@@ -96,11 +96,11 @@ newton qa bundle-validate /tmp/newton-plan-check/plan
 
 ### 4. Add a transparent QA estimate scoring model
 
-- [ ] Implement a deterministic scoring table for screens, roles, states, policy rules, integrations, environments, regression risk, data setup, and retest count.
-- [ ] Convert score bands into size labels and time ranges.
-- [ ] Render a factor-by-factor table in `qa-estimate.md`.
-- [ ] Add tests for S, M, and L estimate outcomes.
-- [ ] Keep agent-backed estimates subject to the same required factor schema.
+- [x] Implement a deterministic scoring table for screens, roles, states, policy rules, integrations, environments, regression risk, data setup, and retest count.
+- [x] Convert score bands into size labels and time ranges.
+- [x] Render a factor-by-factor table in `qa-estimate.md`.
+- [x] Add tests for S, M, and L estimate outcomes.
+- [x] Keep agent-backed estimates subject to the same required factor schema.
 
 Acceptance:
 

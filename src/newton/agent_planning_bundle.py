@@ -9,8 +9,13 @@ import subprocess
 from pathlib import Path
 from typing import Callable, Sequence
 
-from newton.planning_bundle import _extract_title, _slugify
 from newton.models import ARTIFACT_CONTRACT_VERSION
+from newton.planning_bundle import (
+    REQUIRED_ESTIMATE_FACTORS,
+    _extract_title,
+    _slugify,
+    normalize_estimate_factor_name,
+)
 from newton.planning_bundle_validation import PlanningBundleValidationError, validate_planning_bundle
 
 AgentRun = Callable[..., subprocess.CompletedProcess[str]]
@@ -138,7 +143,7 @@ Output only JSON with this exact high-level shape:
     "manual_qa_time": ["..."],
     "assumptions": ["..."],
     "evidence_factors": [
-      {{"factor": "screens|policy_rules|roles|states|environments|integrations|regression|data_setup|retest_count|checklist_items", "value": "...", "evidence": "...", "source_reference": "provided source path or filename"}}
+      {{"factor": "screens|roles|states|policy_rules|integrations|environments|regression|data_setup|retest_count", "value": "...", "evidence": "...", "source_reference": "provided source path or filename"}}
     ]
   }},
   "automation_candidates": [
@@ -150,8 +155,9 @@ Rules:
 - Set "plan_id" to exactly "{expected_plan_id}".
 - Keep checklist and test_cases counts equal.
 - Include risk_map rows for at least: functional, edge case, network failure, permission/role, policy conflict, regression.
+- qa_estimate.evidence_factors must include every required factor exactly once or more: screens, roles, states, policy_rules, integrations, environments, regression, data_setup, retest_count.
 - qa_estimate.evidence_factors must cite provided source paths or filenames in source_reference.
-- Use evidence_factors for concrete estimate drivers: screens, policy rules, roles, states, environments, integrations, regression, data setup, and retest count.
+- Use evidence_factors only for concrete estimate drivers, not generic reasoning.
 - Do not include markdown fences around the JSON.
 
 Sources:
@@ -261,15 +267,26 @@ def _validate_estimate(estimate: object, *, source_paths: list[Path]) -> None:
     evidence_factors = estimate.get("evidence_factors")
     if not isinstance(evidence_factors, list) or not evidence_factors:
         raise AgentPlanningBundleError("qa_estimate.evidence_factors must be a non-empty list")
+    seen_required_factors: set[str] = set()
     for index, factor in enumerate(evidence_factors, start=1):
         label = f"qa_estimate.evidence_factors[{index}]"
         _validate_object_fields(factor, ["factor", "value", "evidence", "source_reference"], label)
         assert isinstance(factor, dict)
+        raw_factor = str(factor["factor"])
+        normalized_factor = normalize_estimate_factor_name(raw_factor)
+        if normalized_factor is None:
+            raise AgentPlanningBundleError(f"{label}.factor must be one of the required estimate factors")
+        seen_required_factors.add(normalized_factor)
         source_reference = str(factor["source_reference"])
         if not _source_reference_matches(source_reference, source_paths):
             raise AgentPlanningBundleError(
                 f"{label}.source_reference must cite one of the provided source paths or filenames"
             )
+    missing_factors = [factor for factor in REQUIRED_ESTIMATE_FACTORS if factor not in seen_required_factors]
+    if missing_factors:
+        raise AgentPlanningBundleError(
+            "qa_estimate.evidence_factors missing required factors: " + ", ".join(missing_factors)
+        )
 
 
 def _source_reference_matches(source_reference: str, source_paths: list[Path]) -> bool:

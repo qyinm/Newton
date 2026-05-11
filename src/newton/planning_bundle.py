@@ -52,6 +52,112 @@ class MarkdownItem:
     source_reference: SourceReference
 
 
+@dataclass(frozen=True)
+class EstimateFactor:
+    factor: str
+    value: str
+    evidence: str
+    source: str
+    score: int
+    rule: str
+
+
+@dataclass(frozen=True)
+class EstimateBand:
+    size: str
+    time_range: str
+    score_band: str
+    manual_qa_time: list[str]
+
+
+REQUIRED_ESTIMATE_FACTORS = (
+    "screens",
+    "roles",
+    "states",
+    "policy_rules",
+    "integrations",
+    "environments",
+    "regression",
+    "data_setup",
+    "retest_count",
+)
+
+ESTIMATE_FACTOR_ALIASES = {
+    "screens": {"screens", "screen"},
+    "roles": {"roles", "role", "user_roles", "user_role", "personas", "persona"},
+    "states": {"states", "state"},
+    "policy_rules": {"policy_rules", "policy_rule", "policies", "policy"},
+    "integrations": {
+        "integrations",
+        "integration",
+        "dependencies",
+        "dependency",
+        "integrations_dependencies",
+        "dependencies_integrations",
+    },
+    "environments": {"environments", "environment", "test_environments", "test_environment"},
+    "regression": {"regression", "regressions", "regression_risk", "regression_areas", "regression_area"},
+    "data_setup": {"data_setup", "data", "test_data", "fixtures", "fixture"},
+    "retest_count": {"retest_count", "retest", "retests", "re_test_count"},
+}
+
+_COUNT_SCORE_RULES = {
+    "screens": [
+        (1, 0, "0-1 screens => +0"),
+        (3, 1, "2-3 screens => +1"),
+        (6, 2, "4-6 screens => +2"),
+        (None, 3, "7+ screens => +3"),
+    ],
+    "roles": [
+        (1, 0, "0-1 roles => +0"),
+        (3, 1, "2-3 roles => +1"),
+        (None, 2, "4+ roles => +2"),
+    ],
+    "states": [
+        (5, 0, "0-5 states => +0"),
+        (8, 1, "6-8 states => +1"),
+        (None, 2, "9+ states => +2"),
+    ],
+    "policy_rules": [
+        (0, 0, "0 policy rules => +0"),
+        (2, 1, "1-2 policy rules => +1"),
+        (None, 2, "3+ policy rules => +2"),
+    ],
+    "integrations": [
+        (0, 0, "0 integrations/dependencies => +0"),
+        (1, 1, "1 integration/dependency => +1"),
+        (3, 2, "2-3 integrations/dependencies => +2"),
+        (None, 3, "4+ integrations/dependencies => +3"),
+    ],
+    "environments": [
+        (1, 0, "0-1 environments => +0"),
+        (2, 1, "2 environments => +1"),
+        (None, 2, "3+ environments => +2"),
+    ],
+    "regression": [
+        (0, 0, "0 regression risks => +0"),
+        (2, 1, "1-2 regression risks => +1"),
+        (None, 2, "3+ regression risks => +2"),
+    ],
+    "data_setup": [
+        (0, 0, "0 data setup signals => +0"),
+        (2, 1, "1-2 data setup signals => +1"),
+        (None, 2, "3+ data setup signals => +2"),
+    ],
+    "retest_count": [
+        (1, 0, "1 retest pass => +0"),
+        (3, 1, "2-3 retest passes => +1"),
+        (5, 2, "4-5 retest passes => +2"),
+        (None, 3, "6+ retest passes => +3"),
+    ],
+}
+
+_DATA_SETUP_PATTERN = re.compile(
+    r"\b(seed|fixture|test account|test user|sample data|test data|migration|backfill|import|export|paid invoice)\b",
+    re.IGNORECASE,
+)
+
+
 def generate_planning_bundle(
     input_path: Path,
     out_dir: Path,
@@ -64,7 +170,8 @@ def generate_planning_bundle(
     markdown = markdown_by_path[0]
     title = _extract_title(markdown)
     plan_id = _slugify(title)
-    source_facts = _extract_source_facts(list(zip(all_source_paths, markdown_by_path, strict=True)))
+    markdown_sources = list(zip(all_source_paths, markdown_by_path, strict=True))
+    source_facts = _extract_source_facts(markdown_sources)
     summary = source_facts.feature_goal[0].text if source_facts.feature_goal else _extract_summary(markdown)
     checklist_items = _extract_all_acceptance_criteria(markdown_by_path) or _facts_to_checklist(source_facts) or [summary]
 
@@ -84,7 +191,9 @@ def generate_planning_bundle(
     checklist_path.write_text(_render_checklist(title, checklist_items))
     test_cases_path.write_text(_render_test_cases_csv(checklist_items))
     risk_map_path.write_text(_render_risk_map(title))
-    qa_estimate_path.write_text(_render_estimate(title, checklist_items, all_source_paths, source_facts))
+    qa_estimate_path.write_text(
+        _render_estimate(title, checklist_items, all_source_paths, source_facts, markdown_sources)
+    )
     automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
     qa_run_tracker_path.write_text(_render_run_tracker(title, checklist_items))
     manifest: dict[str, object] = {
@@ -256,6 +365,14 @@ def _extract_user_role(text: str) -> str | None:
 
 def _section_key(section: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", section.casefold()).strip("_")
+
+
+def normalize_estimate_factor_name(factor: str) -> str | None:
+    normalized = _section_key(factor)
+    for canonical, aliases in ESTIMATE_FACTOR_ALIASES.items():
+        if normalized == canonical or normalized in aliases:
+            return canonical
+    return None
 
 
 def _facts_to_checklist(facts: SourceFacts) -> list[str]:
@@ -454,30 +571,189 @@ Source: generated PRD baseline risks
 """
 
 
-def _render_estimate_fact_rows(source_facts: SourceFacts) -> str:
-    rows: list[str] = []
-    for factor, facts in [
-        ("feature_goal", source_facts.feature_goal),
-        ("screens", source_facts.screens),
-        ("user_roles", source_facts.user_roles),
-        ("states", source_facts.states),
-        ("policies", source_facts.policies),
-        ("environments", source_facts.environments),
-        ("dependencies", source_facts.dependencies),
-        ("regression_areas", source_facts.regression_areas),
-        ("unknowns", source_facts.unknowns),
-        ("out_of_scope", source_facts.out_of_scope),
-    ]:
-        if not facts:
-            continue
-        rows.append(
-            "| "
-            f"{factor} | "
-            f"{len(facts)} extracted | "
-            f"{_markdown_table_cell(_join_fact_texts(facts))} | "
-            f"{_join_fact_sources(facts)} |"
+def _estimate_factors(
+    *,
+    source_facts: SourceFacts,
+    source_paths: list[Path],
+    markdown_sources: list[tuple[Path, str]],
+) -> list[EstimateFactor]:
+    source_input = source_paths[0]
+    data_setup_items = _extract_data_setup_items(markdown_sources)
+    retest_count = max(1, len(source_facts.environments)) + min(len(source_facts.regression_areas), 2)
+    retest_sources = [*source_facts.environments, *source_facts.regression_areas]
+    return [
+        _count_estimate_factor(
+            "screens",
+            source_facts.screens,
+            source_input=source_input,
+            missing_evidence="No screens called out in source context.",
+        ),
+        _count_estimate_factor(
+            "roles",
+            source_facts.user_roles,
+            source_input=source_input,
+            missing_evidence="No distinct user roles called out in source context.",
+        ),
+        _count_estimate_factor(
+            "states",
+            source_facts.states,
+            source_input=source_input,
+            missing_evidence="No explicit UI or flow states called out in source context.",
+        ),
+        _count_estimate_factor(
+            "policy_rules",
+            source_facts.policies,
+            source_input=source_input,
+            missing_evidence="No policy rules called out in source context.",
+        ),
+        _count_estimate_factor(
+            "integrations",
+            source_facts.dependencies,
+            source_input=source_input,
+            missing_evidence="No integrations or dependencies called out in source context.",
+        ),
+        _count_estimate_factor(
+            "environments",
+            source_facts.environments,
+            source_input=source_input,
+            missing_evidence="No explicit environment matrix called out in source context.",
+        ),
+        _count_estimate_factor(
+            "regression",
+            source_facts.regression_areas,
+            source_input=source_input,
+            missing_evidence="No regression risks called out in source context.",
+        ),
+        _data_setup_estimate_factor(data_setup_items, source_input=source_input),
+        _scalar_estimate_factor(
+            "retest_count",
+            value=f"{retest_count} passes",
+            evidence=(
+                f"{max(1, len(source_facts.environments))} environment pass(es) plus "
+                f"{min(len(source_facts.regression_areas), 2)} regression retest pass(es)."
+            ),
+            source=_join_fact_sources(retest_sources) if retest_sources else f"`{_markdown_table_cell(str(source_input))}`",
+            measure=retest_count,
+        ),
+    ]
+
+
+def _count_estimate_factor(
+    factor: str,
+    facts: list[SourceFact],
+    *,
+    source_input: Path,
+    missing_evidence: str,
+) -> EstimateFactor:
+    count = len(facts)
+    evidence = _join_fact_texts(facts) if facts else missing_evidence
+    source = _join_fact_sources(facts) if facts else f"`{_markdown_table_cell(str(source_input))}`"
+    return _scalar_estimate_factor(
+        factor,
+        value=f"{count} extracted",
+        evidence=evidence,
+        source=source,
+        measure=count,
+    )
+
+
+def _data_setup_estimate_factor(items: list[MarkdownItem], *, source_input: Path) -> EstimateFactor:
+    count = len(items)
+    evidence = _join_markdown_item_texts(items) if items else "No explicit data setup called out in source context."
+    source = _join_markdown_item_sources(items) if items else f"`{_markdown_table_cell(str(source_input))}`"
+    return _scalar_estimate_factor(
+        "data_setup",
+        value=f"{count} signals",
+        evidence=evidence,
+        source=source,
+        measure=count,
+    )
+
+
+def _scalar_estimate_factor(
+    factor: str,
+    *,
+    value: str,
+    evidence: str,
+    source: str,
+    measure: int,
+) -> EstimateFactor:
+    score, rule = _score_measure(factor, measure)
+    return EstimateFactor(
+        factor=factor,
+        value=value,
+        evidence=_markdown_table_cell(evidence),
+        source=source,
+        score=score,
+        rule=rule,
+    )
+
+
+def _score_measure(factor: str, measure: int) -> tuple[int, str]:
+    for max_value, score, rule in _COUNT_SCORE_RULES[factor]:
+        if max_value is None or measure <= max_value:
+            return score, rule
+    raise AssertionError(f"unreachable score rule for {factor}")
+
+
+def _estimate_band(total_score: int) -> EstimateBand:
+    if total_score <= 4:
+        return EstimateBand(
+            size="S",
+            time_range="40-90 min",
+            score_band="0-4 points",
+            manual_qa_time=[
+                "Focused smoke and negative pass: 40-90 min",
+                "Evidence/report review: 10-20 min",
+            ],
         )
-    return "\n".join(rows)
+    if total_score <= 9:
+        return EstimateBand(
+            size="M",
+            time_range="2-4 hours",
+            score_band="5-9 points",
+            manual_qa_time=[
+                "Primary flow, role/state, and dependency pass: 2-3 hours",
+                "Regression and evidence review: 30-60 min",
+            ],
+        )
+    return EstimateBand(
+        size="L",
+        time_range="1-2 days",
+        score_band="10+ points",
+        manual_qa_time=[
+            "Full matrix pass across roles, states, environments, and dependencies: 1-1.5 days",
+            "Regression retest, data setup verification, and reporting: 0.5 day",
+        ],
+    )
+
+
+def _render_estimate_factor_rows(factors: list[EstimateFactor]) -> str:
+    return "\n".join(
+        "| "
+        f"{factor.factor} | "
+        f"{factor.value} | "
+        f"{factor.evidence} | "
+        f"{factor.source} | "
+        f"{factor.score} | "
+        f"{factor.rule} |"
+        for factor in factors
+    )
+
+
+def _extract_data_setup_items(markdown_sources: list[tuple[Path, str]]) -> list[MarkdownItem]:
+    items: list[MarkdownItem] = []
+    seen: set[tuple[str, str]] = set()
+    for path, markdown in markdown_sources:
+        for item in _iter_markdown_items(path, markdown):
+            if not _DATA_SETUP_PATTERN.search(item.text):
+                continue
+            dedupe_key = (item.text.casefold(), item.source_reference.display())
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            items.append(item)
+    return items
 
 
 def _join_fact_texts(facts: list[SourceFact]) -> str:
@@ -487,10 +763,26 @@ def _join_fact_texts(facts: list[SourceFact]) -> str:
     return "; ".join(values)
 
 
+def _join_markdown_item_texts(items: list[MarkdownItem]) -> str:
+    values = [item.text for item in items[:3]]
+    if len(items) > 3:
+        values.append(f"+{len(items) - 3} more")
+    return "; ".join(values)
+
+
 def _join_fact_sources(facts: list[SourceFact]) -> str:
     unique_sources: list[str] = []
     for fact in facts:
         source = fact.source_reference.display()
+        if source not in unique_sources:
+            unique_sources.append(source)
+    return ", ".join(f"`{_markdown_table_cell(source)}`" for source in unique_sources)
+
+
+def _join_markdown_item_sources(items: list[MarkdownItem]) -> str:
+    unique_sources: list[str] = []
+    for item in items:
+        source = item.source_reference.display()
         if source not in unique_sources:
             unique_sources.append(source)
     return ", ".join(f"`{_markdown_table_cell(source)}`" for source in unique_sources)
@@ -505,39 +797,37 @@ def _render_estimate(
     checklist_items: list[str],
     source_paths: list[Path],
     source_facts: SourceFacts,
+    markdown_sources: list[tuple[Path, str]],
 ) -> str:
     source_input = source_paths[0]
-    fact_rows = _render_estimate_fact_rows(source_facts)
-    source_rows = "\n".join(
-        f"| source_{index} | `{source_path.name}` | Provided planning context included in bundle generation | `{source_path}` |"
-        for index, source_path in enumerate(source_paths, start=1)
-    )
+    factors = _estimate_factors(source_facts=source_facts, source_paths=source_paths, markdown_sources=markdown_sources)
+    total_score = sum(factor.score for factor in factors)
+    band = _estimate_band(total_score)
+    factor_rows = _render_estimate_factor_rows(factors)
+    manual_qa_time = "\n".join(f"- {item}" for item in band.manual_qa_time)
     return f"""# QA Estimate: {title}
 
 ## Summary
 
-Estimated QA effort: S
+Estimated QA effort: {band.size} ({band.time_range})
 
 ## Basis
 
 - Checklist items: {len(checklist_items)}
 - Risk level: P0 functional
 - Source input: `{source_input}`
+- Total score: {total_score}
+- Score band: {band.score_band}
 
 ## Evidence Factors
 
-| Factor | Value | Evidence | Source |
-| --- | --- | --- | --- |
-| checklist_items | {len(checklist_items)} items | Extracted acceptance criteria count | `{source_input}` |
-| risk_level | P0 functional | Primary flow blocks core user access | `{source_input}` |
-{fact_rows}
-{source_rows}
+| Factor | Value | Evidence | Source | Score | Rule |
+| --- | --- | --- | --- | ---: | --- |
+{factor_rows}
 
 ## Suggested Manual QA Time
 
-- Happy path smoke: 15 min
-- Negative/error cases: 15 min
-- Evidence/report review: 10 min
+{manual_qa_time}
 
 ## Assumptions
 

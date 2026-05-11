@@ -8,6 +8,28 @@ from newton.backends.playwright_setup import PlaywrightSetupCheck, PlaywrightSet
 from newton.models import RunResult, StepResult
 
 
+def _agent_estimate_factors(source_reference: str = "login-ticket.md") -> list[dict[str, str]]:
+    return [
+        {
+            "factor": factor,
+            "value": "1 extracted",
+            "evidence": f"{factor} evidence from source context.",
+            "source_reference": source_reference,
+        }
+        for factor in [
+            "screens",
+            "roles",
+            "states",
+            "policy_rules",
+            "integrations",
+            "environments",
+            "regression",
+            "data_setup",
+            "retest_count",
+        ]
+    ]
+
+
 class FailingBackend:
     def run(self, scenario, target, run_dir):
         return RunResult(
@@ -417,8 +439,10 @@ def test_qa_plan_bundle_generates_minimal_prd_artifacts(tmp_path: Path):
     risk_map = (tmp_path / "login" / "risk-map.md").read_text()
     estimate = (tmp_path / "login" / "qa-estimate.md").read_text()
     assert "## Evidence Factors" in estimate
-    assert "| checklist_items | 5 items |" in estimate
-    assert "| risk_level | P0 functional |" in estimate
+    assert "Estimated QA effort: S (40-90 min)" in estimate
+    assert "Score band: 0-4 points" in estimate
+    assert "| screens | 0 extracted |" in estimate
+    assert "| retest_count | 1 passes |" in estimate
     assert "| edge case |" in risk_map
     assert "| network failure |" in risk_map
     assert "| permission/role |" in risk_map
@@ -718,51 +742,93 @@ def test_qa_tracker_update_from_run_links_run_result_to_tracker(tmp_path: Path):
 
 def test_qa_plan_bundle_agent_codex_generates_valid_bundle_with_provenance(tmp_path: Path):
     fake_agent = tmp_path / "fake-bundle-agent.py"
+    evidence_factors = _agent_estimate_factors("qa/inputs/login-ticket.md")
+    evidence_factors[3] = {
+        "factor": "policy_rules",
+        "value": "1 policy-sensitive rule",
+        "evidence": "Login policy requires generic auth failure feedback.",
+        "source_reference": "login-policy.md",
+    }
+    payload = {
+        "plan_id": "login",
+        "title": "Login",
+        "qa_scope": {
+            "goal": "Users can securely log in with email and password.",
+            "in_scope": ["Successful login", "Secure login policy feedback"],
+            "out_of_scope": ["Cross-browser matrix"],
+        },
+        "checklist": [
+            {
+                "title": "User can open login page",
+                "risk_category": "functional",
+                "priority": "P0",
+                "source_reference": "login-ticket.md",
+            },
+            {
+                "title": "Error message does not expose whether email exists",
+                "risk_category": "policy conflict",
+                "priority": "P1",
+                "source_reference": "login-policy.md",
+            },
+        ],
+        "test_cases": [
+            {
+                "id": "TC-001",
+                "title": "User can open login page",
+                "priority": "P0",
+                "precondition": "Staging is reachable",
+                "steps": "Open /login",
+                "expected_result": "Login page is visible",
+                "environment": "dev/stg/prod",
+                "risk_category": "functional",
+                "source_reference": "login-ticket.md",
+            },
+            {
+                "id": "TC-002",
+                "title": "Error message does not expose whether email exists",
+                "priority": "P1",
+                "precondition": "Invalid login test account exists",
+                "steps": "Submit unknown email and wrong password",
+                "expected_result": "Generic error is shown",
+                "environment": "dev/stg/prod",
+                "risk_category": "policy conflict",
+                "source_reference": "login-policy.md",
+            },
+        ],
+        "risk_map": [
+            {"area": "functional", "priority": "P0", "rationale": "Login blocks account access"},
+            {"area": "edge case", "priority": "P1", "rationale": "Empty and invalid credentials can break form handling"},
+            {"area": "network failure", "priority": "P1", "rationale": "Timeouts need recoverable feedback"},
+            {"area": "permission/role", "priority": "P1", "rationale": "Locked users need correct access handling"},
+            {"area": "policy conflict", "priority": "P1", "rationale": "Error copy must not reveal account existence"},
+            {"area": "regression", "priority": "P1", "rationale": "Existing login smoke can regress"},
+        ],
+        "qa_estimate": {
+            "size": "S",
+            "reasoning": ["2 checklist items", "Policy-sensitive error copy"],
+            "manual_qa_time": ["Happy path smoke: 15 min", "Negative/error cases: 20 min"],
+            "assumptions": ["Staging environment is reachable"],
+            "evidence_factors": evidence_factors,
+        },
+        "automation_candidates": [
+            {
+                "title": "User can open login page",
+                "recommendation": "Recommended",
+                "reason": "Stable smoke path with clear pass/fail signal.",
+            },
+            {
+                "title": "Error message does not expose whether email exists",
+                "recommendation": "Manual For Now",
+                "reason": "Copy and policy details should be reviewed manually first.",
+            },
+        ],
+    }
     fake_agent.write_text(
         "import json, sys\n"
         "prompt = sys.stdin.read()\n"
         "assert 'Generate a Newton QA planning bundle' in prompt\n"
         "assert 'qa/inputs/login-ticket.md' in prompt\n"
-        "payload = {\n"
-        "  'plan_id': 'login',\n"
-        "  'title': 'Login',\n"
-        "  'qa_scope': {\n"
-        "    'goal': 'Users can securely log in with email and password.',\n"
-        "    'in_scope': ['Successful login', 'Secure login policy feedback'],\n"
-        "    'out_of_scope': ['Cross-browser matrix']\n"
-        "  },\n"
-        "  'checklist': [\n"
-        "    {'title': 'User can open login page', 'risk_category': 'functional', 'priority': 'P0', 'source_reference': 'login-ticket.md'},\n"
-        "    {'title': 'Error message does not expose whether email exists', 'risk_category': 'policy conflict', 'priority': 'P1', 'source_reference': 'login-policy.md'}\n"
-        "  ],\n"
-        "  'test_cases': [\n"
-        "    {'id': 'TC-001', 'title': 'User can open login page', 'priority': 'P0', 'precondition': 'Staging is reachable', 'steps': 'Open /login', 'expected_result': 'Login page is visible', 'environment': 'dev/stg/prod', 'risk_category': 'functional', 'source_reference': 'login-ticket.md'},\n"
-        "    {'id': 'TC-002', 'title': 'Error message does not expose whether email exists', 'priority': 'P1', 'precondition': 'Invalid login test account exists', 'steps': 'Submit unknown email and wrong password', 'expected_result': 'Generic error is shown', 'environment': 'dev/stg/prod', 'risk_category': 'policy conflict', 'source_reference': 'login-policy.md'}\n"
-        "  ],\n"
-        "  'risk_map': [\n"
-        "    {'area': 'functional', 'priority': 'P0', 'rationale': 'Login blocks account access'},\n"
-        "    {'area': 'edge case', 'priority': 'P1', 'rationale': 'Empty and invalid credentials can break form handling'},\n"
-        "    {'area': 'network failure', 'priority': 'P1', 'rationale': 'Timeouts need recoverable feedback'},\n"
-        "    {'area': 'permission/role', 'priority': 'P1', 'rationale': 'Locked users need correct access handling'},\n"
-        "    {'area': 'policy conflict', 'priority': 'P1', 'rationale': 'Error copy must not reveal account existence'},\n"
-        "    {'area': 'regression', 'priority': 'P1', 'rationale': 'Existing login smoke can regress'}\n"
-        "  ],\n"
-        "  'qa_estimate': {\n"
-        "    'size': 'S',\n"
-        "    'reasoning': ['2 checklist items', 'Policy-sensitive error copy'],\n"
-        "    'manual_qa_time': ['Happy path smoke: 15 min', 'Negative/error cases: 20 min'],\n"
-        "    'assumptions': ['Staging environment is reachable'],\n"
-        "    'evidence_factors': [\n"
-        "      {'factor': 'checklist_items', 'value': '2 checklist items', 'evidence': 'Login ticket and policy produce two required QA checks.', 'source_reference': 'qa/inputs/login-ticket.md'},\n"
-        "      {'factor': 'policy_rules', 'value': '1 policy-sensitive rule', 'evidence': 'Login policy requires generic auth failure feedback.', 'source_reference': 'login-policy.md'}\n"
-        "    ]\n"
-        "  },\n"
-        "  'automation_candidates': [\n"
-        "    {'title': 'User can open login page', 'recommendation': 'Recommended', 'reason': 'Stable smoke path with clear pass/fail signal.'},\n"
-        "    {'title': 'Error message does not expose whether email exists', 'recommendation': 'Manual For Now', 'reason': 'Copy and policy details should be reviewed manually first.'}\n"
-        "  ]\n"
-        "}\n"
-        "print(json.dumps(payload))\n"
+        "print(" + repr(json.dumps(payload)) + ")\n"
     )
 
     result = CliRunner().invoke(
@@ -875,14 +941,7 @@ def test_qa_plan_bundle_agent_rejects_invalid_estimate_evidence(tmp_path: Path):
             "reasoning": ["1 checklist item"],
             "manual_qa_time": ["Happy path smoke: 15 min"],
             "assumptions": ["Staging is reachable"],
-            "evidence_factors": [
-                {
-                    "factor": "checklist_items",
-                    "value": "1 checklist item",
-                    "evidence": "Login ticket has one core login check.",
-                    "source_reference": "login-ticket.md",
-                }
-            ],
+            "evidence_factors": _agent_estimate_factors(),
         },
         "automation_candidates": [
             {"title": "User can open login page", "recommendation": "Recommended", "reason": "Stable smoke path."}

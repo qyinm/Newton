@@ -2,8 +2,20 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
+from newton.agent_planning_bundle import AgentPlanningBundleError
 from newton.agent_planning_bundle import generate_planning_bundle_with_agent
 from newton.models import ARTIFACT_CONTRACT_VERSION
+
+
+def _estimate_factor(factor: str, source_reference: str = "login-ticket.md") -> dict[str, str]:
+    return {
+        "factor": factor,
+        "value": "1 extracted",
+        "evidence": f"{factor} evidence from source context.",
+        "source_reference": source_reference,
+    }
 
 
 def _valid_payload() -> dict[str, object]:
@@ -50,12 +62,15 @@ def _valid_payload() -> dict[str, object]:
             "manual_qa_time": ["30 minutes"],
             "assumptions": ["Staging is reachable"],
             "evidence_factors": [
-                {
-                    "factor": "checklist_items",
-                    "value": "1 checklist item",
-                    "evidence": "Login ticket has one core login check.",
-                    "source_reference": "login-ticket.md",
-                }
+                _estimate_factor("screens"),
+                _estimate_factor("roles"),
+                _estimate_factor("states"),
+                _estimate_factor("policy_rules"),
+                _estimate_factor("integrations"),
+                _estimate_factor("environments"),
+                _estimate_factor("regression"),
+                _estimate_factor("data_setup"),
+                _estimate_factor("retest_count"),
             ],
         },
         "automation_candidates": [
@@ -102,3 +117,26 @@ def test_codex_agent_uses_output_last_message_file_when_stdout_is_noisy(tmp_path
     raw_output = (bundle_dir / "bundle-generation.codex.raw.txt").read_text()
     assert "OpenAI Codex transcript" in raw_output
     assert "skill loader warning" in raw_output
+
+
+def test_agent_planning_bundle_requires_complete_estimate_factor_schema(tmp_path: Path):
+    payload = _valid_payload()
+    estimate = payload["qa_estimate"]
+    assert isinstance(estimate, dict)
+    estimate["evidence_factors"] = [
+        _estimate_factor("screens"),
+        _estimate_factor("roles"),
+        _estimate_factor("states"),
+    ]
+
+    def fake_run(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout=json.dumps(payload), stderr="")
+
+    with pytest.raises(AgentPlanningBundleError, match="missing required factors"):
+        generate_planning_bundle_with_agent(
+            Path("qa/inputs/login-ticket.md"),
+            out_dir=tmp_path,
+            agent="codex",
+            command=["fake-agent"],
+            run=fake_run,
+        )

@@ -78,8 +78,11 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
 
     estimate = (bundle_dir / "qa-estimate.md").read_text()
     assert "# QA Estimate: Login" in estimate
-    assert "Estimated QA effort: S" in estimate
+    assert "Estimated QA effort: S (40-90 min)" in estimate
+    assert "Score band: 0-4 points" in estimate
     assert "Checklist items: 5" in estimate
+    assert "Total score: 0" in estimate
+    assert "| screens | 0 extracted | No screens called out in source context. | `tests/fixtures/inputs/login_ticket.md` | 0 | 0-1 screens => +0 |" in estimate
     assert "Suggested Manual QA Time" in estimate
 
     automation = (bundle_dir / "automation-candidates.md").read_text()
@@ -226,13 +229,98 @@ def test_generate_planning_bundle_extracts_structured_facts_from_multiple_source
 
     estimate = (bundle_dir / "qa-estimate.md").read_text()
     assert "| screens | 2 extracted |" in estimate
-    assert "| user_roles | 2 extracted |" in estimate
+    assert "| roles | 2 extracted |" in estimate
     assert "| states | 4 extracted |" in estimate
-    assert "| policies | 2 extracted |" in estimate
+    assert "| policy_rules | 2 extracted |" in estimate
     assert "| environments | 2 extracted | dev; staging | `ticket.md#Environments` |" in estimate
-    assert "| dependencies | 1 extracted |" in estimate
-    assert "| regression_areas | 1 extracted | Dashboard navigation can regress. | `ticket.md#Risks` |" in estimate
-    assert "| unknowns | 1 extracted | MFA rollout timing is not confirmed. | `ticket.md#Unknowns` |" in estimate
+    assert "| integrations | 1 extracted |" in estimate
+    assert "| regression | 1 extracted | Dashboard navigation can regress. | `ticket.md#Risks` |" in estimate
+    assert "| retest_count | 3 passes | 2 environment pass(es) plus 1 regression retest pass(es). |" in estimate
+    assert "Estimated QA effort: M (2-4 hours)" in estimate
+    assert "Score band: 5-9 points" in estimate
+
+
+def test_generate_planning_bundle_scores_large_inputs_as_l(tmp_path: Path):
+    ticket = tmp_path / "release.md"
+    ticket.write_text(
+        """# Billing Release
+
+## Scope
+- Validate billing launch across checkout, subscription, invoices, and account settings.
+
+## User Stories
+- As a buyer, I can purchase a plan.
+- As an admin, I can update a team subscription.
+- As a finance user, I can download invoices.
+- As a support agent, I can inspect payment status.
+
+## Requirements
+- Checkout screen loads active plans.
+- Payment method state handles missing card.
+- Payment method state handles declined card.
+- Coupon state handles valid code.
+- Coupon state handles expired code.
+- Subscription state handles upgrade.
+- Subscription state handles downgrade.
+- Invoice state handles failed generation.
+- Account state handles suspended billing.
+
+## Policy
+- Trials must not charge before the trial end date.
+- Taxes must use the user's billing country.
+- Invoice copy must include the legal entity name.
+
+## Environments
+- dev
+- staging
+- production
+
+## Dependencies
+- Stripe payment API.
+- Tax calculation service.
+- Invoice PDF service.
+- CRM account sync.
+
+## Risks
+- Existing checkout can regress.
+- Existing subscription management can regress.
+- Existing invoice download can regress.
+
+## Unknowns
+- Production payment test tokens are not confirmed.
+"""
+    )
+    design_notes = tmp_path / "design-notes.md"
+    design_notes.write_text(
+        """# Billing Design Notes
+
+## Design Notes
+- Checkout screen shows plan cards.
+- Payment screen shows saved card state.
+- Subscription screen shows upgrade and downgrade controls.
+- Invoice screen shows downloadable invoice rows.
+- Account settings screen shows billing owner controls.
+- Seed test accounts for buyer, admin, finance, and support roles.
+- Fixture data requires active plan, trial plan, expired card, and paid invoice records.
+- Migration seed must create historical invoices before QA starts.
+"""
+    )
+
+    bundle_dir = generate_planning_bundle(
+        ticket,
+        out_dir=tmp_path / "plans",
+        source_paths=[design_notes],
+    )
+
+    estimate = (bundle_dir / "qa-estimate.md").read_text()
+    assert "Estimated QA effort: L (1-2 days)" in estimate
+    assert "Score band: 10+ points" in estimate
+    assert "| roles | 4 extracted |" in estimate
+    assert "| states | 11 extracted |" in estimate
+    assert "| policy_rules | 3 extracted |" in estimate
+    assert "| integrations | 4 extracted |" in estimate
+    assert "| data_setup | 3 signals |" in estimate
+    assert "| retest_count | 5 passes | 3 environment pass(es) plus 2 regression retest pass(es). |" in estimate
 
 
 def test_generate_planning_bundle_rejects_empty_input(tmp_path: Path):
