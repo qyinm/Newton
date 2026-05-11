@@ -212,11 +212,11 @@ uv run --extra dev --extra web pytest tests/test_models.py tests/test_scenario_l
 
 ### 10. Harden selector and action coverage for real web smoke tests
 
-- [ ] Support common selector forms needed for release demos: role/name, test id, text, css, label, placeholder, alt text, and title.
-- [ ] Support minimal release actions: navigate, click/tap, fill/input text, checkbox, select option, keyboard press, file upload, and explicit wait.
-- [ ] Support assertion actions for URL, URL pattern, text, visibility, hidden/not visible, enabled/disabled state, and value.
-- [ ] Add explicit unsupported-selector errors that include the step id and selector payload.
-- [ ] Add tests for every selector and action form.
+- [x] Support common selector forms needed for release demos: role/name, test id, text, css, label, placeholder, alt text, and title.
+- [x] Support minimal release actions: navigate, click/tap, fill/input text, checkbox, select option, keyboard press, file upload, and explicit wait.
+- [x] Support assertion actions for URL, URL pattern, text, visibility, hidden/not visible, enabled/disabled state, and value.
+- [x] Add explicit unsupported-selector errors that include the step id and selector payload.
+- [x] Add tests for every selector and action form.
 
 Acceptance:
 

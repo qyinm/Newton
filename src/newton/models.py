@@ -21,33 +21,84 @@ WEB_ACTIONS = frozenset(
         "click",
         "input_text",
         "fill",
+        "checkbox",
+        "select_option",
+        "press",
+        "upload_file",
+        "wait",
         "assert_visible",
         "wait_for_selector",
         "expect_visible",
+        "assert_hidden",
+        "assert_not_visible",
         "assert_text",
         "assert_url",
+        "assert_url_pattern",
+        "assert_enabled",
+        "assert_disabled",
+        "assert_value",
     }
 )
-WEB_LOCATOR_ACTIONS = frozenset(
-    {
-        "tap",
-        "click",
-        "input_text",
-        "fill",
-        "assert_visible",
-        "wait_for_selector",
-        "expect_visible",
-    }
+WEB_CLICK_ACTIONS = frozenset({"tap", "click"})
+WEB_TEXT_ENTRY_ACTIONS = frozenset({"input_text", "fill"})
+WEB_CHECKBOX_ACTIONS = frozenset({"checkbox"})
+WEB_SELECT_ACTIONS = frozenset({"select_option"})
+WEB_KEYBOARD_ACTIONS = frozenset({"press"})
+WEB_FILE_UPLOAD_ACTIONS = frozenset({"upload_file"})
+WEB_WAIT_ACTIONS = frozenset({"wait"})
+WEB_VISIBLE_ASSERTION_ACTIONS = frozenset({"assert_visible", "wait_for_selector", "expect_visible"})
+WEB_HIDDEN_ASSERTION_ACTIONS = frozenset({"assert_hidden", "assert_not_visible"})
+WEB_STATE_ASSERTION_ACTIONS = frozenset({"assert_enabled", "assert_disabled"})
+WEB_VALUE_ASSERTION_ACTIONS = frozenset({"assert_value"})
+WEB_LOCATOR_REQUIRED_ACTIONS = frozenset().union(
+    WEB_CLICK_ACTIONS,
+    WEB_TEXT_ENTRY_ACTIONS,
+    WEB_CHECKBOX_ACTIONS,
+    WEB_SELECT_ACTIONS,
+    WEB_FILE_UPLOAD_ACTIONS,
+    WEB_VISIBLE_ASSERTION_ACTIONS,
+    WEB_HIDDEN_ASSERTION_ACTIONS,
+    WEB_STATE_ASSERTION_ACTIONS,
+    WEB_VALUE_ASSERTION_ACTIONS,
 )
 WEB_URL_ACTIONS = frozenset({"navigate", "goto", "assert_url"})
-WEB_SELECTOR_FAMILIES = ("role", "test_id", "text", "css", "url")
-WEB_LOCATOR_SELECTOR_FAMILIES = ("role", "test_id", "text", "css")
+WEB_URL_PATTERN_ACTIONS = frozenset({"assert_url_pattern"})
+WEB_TARGET_OPTIONAL_ACTIONS = frozenset().union(
+    WEB_URL_ACTIONS, WEB_URL_PATTERN_ACTIONS, WEB_WAIT_ACTIONS, WEB_KEYBOARD_ACTIONS
+)
+WEB_SELECTOR_FAMILIES = (
+    "role",
+    "test_id",
+    "text",
+    "css",
+    "label",
+    "placeholder",
+    "alt_text",
+    "title",
+    "url",
+    "url_pattern",
+)
+WEB_LOCATOR_SELECTOR_FAMILIES = (
+    "role",
+    "test_id",
+    "text",
+    "css",
+    "label",
+    "placeholder",
+    "alt_text",
+    "title",
+)
 WEB_SELECTOR_ALLOWED_KEYS = {
     "role": frozenset({"role", "name"}),
     "test_id": frozenset({"test_id"}),
     "text": frozenset({"text"}),
     "css": frozenset({"css"}),
+    "label": frozenset({"label"}),
+    "placeholder": frozenset({"placeholder"}),
+    "alt_text": frozenset({"alt_text"}),
+    "title": frozenset({"title"}),
     "url": frozenset({"url"}),
+    "url_pattern": frozenset({"url_pattern"}),
 }
 
 
@@ -176,11 +227,17 @@ class Scenario(BaseModel):
         for step in self.steps:
             if "web" in platforms:
                 validate_web_step(step)
-            if step.action in {"navigate", "launch_app"}:
-                continue
             if step.target is None:
+                if platforms == {"web"} and step.action in WEB_TARGET_OPTIONAL_ACTIONS:
+                    continue
+                if step.action in {"navigate", "launch_app"}:
+                    continue
                 raise ValueError(f"step '{step.id}' must define a target binding")
-            if "web" in platforms and step.target.web is None:
+            if (
+                "web" in platforms
+                and step.target.web is None
+                and step.action not in WEB_TARGET_OPTIONAL_ACTIONS
+            ):
                 raise ValueError(f"step '{step.id}' is missing a web target binding")
             if "ios" in platforms and step.target.ios is None:
                 raise ValueError(f"step '{step.id}' is missing an ios target binding")
@@ -199,13 +256,15 @@ def validate_web_step(step: ScenarioStep) -> None:
             )
         )
 
-    if step.action in WEB_LOCATOR_ACTIONS:
+    if step.action in WEB_LOCATOR_REQUIRED_ACTIONS:
         _validate_web_selector(
             step,
             selector,
             allowed_families=WEB_LOCATOR_SELECTOR_FAMILIES,
             required=True,
         )
+        if step.action in WEB_SELECT_ACTIONS | WEB_FILE_UPLOAD_ACTIONS | WEB_VALUE_ASSERTION_ACTIONS:
+            _validate_step_value(step, selector, f"{step.action} requires step.value")
         return
 
     if step.action in WEB_URL_ACTIONS:
@@ -213,9 +272,46 @@ def validate_web_step(step: ScenarioStep) -> None:
             _validate_web_selector(step, selector, allowed_families=("url",), required=False)
         return
 
+    if step.action in WEB_URL_PATTERN_ACTIONS:
+        if selector:
+            _validate_web_selector(
+                step,
+                selector,
+                allowed_families=("url_pattern",),
+                required=False,
+            )
+        if not _non_blank_string(step.value) and "url_pattern" not in selector:
+            raise ValueError(
+                _web_step_validation_error(
+                    step,
+                    selector,
+                    "assert_url_pattern requires step.value or target.web.url_pattern",
+                )
+            )
+        return
+
+    if step.action in WEB_WAIT_ACTIONS:
+        return
+
+    if step.action in WEB_KEYBOARD_ACTIONS:
+        if selector:
+            _validate_web_selector(
+                step,
+                selector,
+                allowed_families=WEB_LOCATOR_SELECTOR_FAMILIES,
+                required=False,
+            )
+        _validate_step_value(step, selector, f"{step.action} requires step.value")
+        return
+
     if step.action == "assert_text":
         if selector:
-            _validate_web_selector(step, selector, allowed_families=("text",), required=False)
+            _validate_web_selector(
+                step,
+                selector,
+                allowed_families=WEB_LOCATOR_SELECTOR_FAMILIES,
+                required=False,
+            )
         if not _non_blank_string(step.value) and "text" not in selector:
             raise ValueError(
                 _web_step_validation_error(
@@ -224,6 +320,11 @@ def validate_web_step(step: ScenarioStep) -> None:
                     "assert_text requires step.value or target.web.text",
                 )
             )
+
+
+def _validate_step_value(step: ScenarioStep, selector: dict[str, Any], detail: str) -> None:
+    if not _non_blank_string(step.value):
+        raise ValueError(_web_step_validation_error(step, selector, detail))
 
 
 def _validate_web_selector(

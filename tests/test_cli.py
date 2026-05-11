@@ -114,7 +114,7 @@ steps:
     action: tap
     target:
       web:
-        label: Log in
+        xpath: "//button[text()='Log in']"
 """
     )
 
@@ -124,8 +124,8 @@ steps:
     assert result.exit_code != 0
     assert "submit-login" in combined_output
     assert "tap" in combined_output
-    assert "target.web {'label': 'Log" in combined_output
-    assert "in'}" in combined_output
+    assert "target.web {'xpath':" in combined_output
+    assert "Log in" in combined_output
 
 
 def test_qa_run_passed_run_exits_zero_and_writes_artifacts(tmp_path: Path):

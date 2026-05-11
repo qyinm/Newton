@@ -18,8 +18,18 @@ def selector_description(selector: dict[str, object]) -> str:
         return f"text={selector['text']}"
     if "css" in selector:
         return f"css={selector['css']}"
+    if "label" in selector:
+        return f"label={selector['label']}"
+    if "placeholder" in selector:
+        return f"placeholder={selector['placeholder']}"
+    if "alt_text" in selector:
+        return f"alt_text={selector['alt_text']}"
+    if "title" in selector:
+        return f"title={selector['title']}"
     if "url" in selector:
         return f"url={selector['url']}"
+    if "url_pattern" in selector:
+        return f"url_pattern={selector['url_pattern']}"
     return str(selector)
 
 
@@ -143,23 +153,85 @@ class PlaywrightBackend:
             page.goto(self._resolve_url(target, step), wait_until="domcontentloaded", timeout=step.timeout_ms)
             return
         if step.action in {"tap", "click"}:
-            self._locator(page, selector).click(timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).click(timeout=step.timeout_ms)
             return
         if step.action in {"input_text", "fill"}:
-            self._locator(page, selector).fill(step.value or "", timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).fill(step.value or "", timeout=step.timeout_ms)
+            return
+        if step.action == "checkbox":
+            self._locator(page, selector, step_id=step.id).set_checked(
+                self._checkbox_state(step),
+                timeout=step.timeout_ms,
+            )
+            return
+        if step.action == "select_option":
+            if step.value is None:
+                raise ValueError(f"step '{step.id}' action '{step.action}' requires step.value")
+            self._locator(page, selector, step_id=step.id).select_option(step.value, timeout=step.timeout_ms)
+            return
+        if step.action == "press":
+            if not step.value:
+                raise ValueError(f"step '{step.id}' action '{step.action}' requires step.value")
+            if selector:
+                self._locator(page, selector, step_id=step.id).press(step.value, timeout=step.timeout_ms)
+            else:
+                page.keyboard.press(step.value)
+            return
+        if step.action == "upload_file":
+            if step.value is None:
+                raise ValueError(f"step '{step.id}' action '{step.action}' requires step.value")
+            self._locator(page, selector, step_id=step.id).set_input_files(step.value, timeout=step.timeout_ms)
+            return
+        if step.action == "wait":
+            page.wait_for_timeout(step.timeout_ms)
             return
         if step.action in {"assert_visible", "wait_for_selector", "expect_visible"}:
-            self._locator(page, selector).wait_for(state="visible", timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).wait_for(state="visible", timeout=step.timeout_ms)
+            return
+        if step.action in {"assert_hidden", "assert_not_visible"}:
+            self._locator(page, selector, step_id=step.id).wait_for(state="hidden", timeout=step.timeout_ms)
             return
         if step.action == "assert_text":
             text = step.value or str(selector.get("text", ""))
             if not text:
-                raise ValueError("assert_text requires step.value or target.web.text")
-            page.get_by_text(text).wait_for(state="visible", timeout=step.timeout_ms)
+                raise ValueError(f"step '{step.id}' action 'assert_text' requires step.value or target.web.text")
+            if selector and "text" not in selector:
+                from playwright.sync_api import expect
+
+                expect(self._locator(page, selector, step_id=step.id)).to_contain_text(
+                    text,
+                    timeout=step.timeout_ms,
+                )
+            else:
+                page.get_by_text(text).wait_for(state="visible", timeout=step.timeout_ms)
             return
         if step.action == "assert_url":
             expected_url = self._resolve_url(target, step)
             page.wait_for_url(expected_url, timeout=step.timeout_ms)
+            return
+        if step.action == "assert_url_pattern":
+            expected_pattern = self._resolve_url_pattern(target, step)
+            page.wait_for_url(expected_pattern, timeout=step.timeout_ms)
+            return
+        if step.action == "assert_enabled":
+            from playwright.sync_api import expect
+
+            expect(self._locator(page, selector, step_id=step.id)).to_be_enabled(timeout=step.timeout_ms)
+            return
+        if step.action == "assert_disabled":
+            from playwright.sync_api import expect
+
+            expect(self._locator(page, selector, step_id=step.id)).to_be_disabled(timeout=step.timeout_ms)
+            return
+        if step.action == "assert_value":
+            if step.value is None:
+                raise ValueError(f"step '{step.id}' action 'assert_value' requires step.value")
+            from playwright.sync_api import expect
+
+            expect(self._locator(page, selector, step_id=step.id)).to_have_value(
+                step.value,
+                timeout=step.timeout_ms,
+            )
             return
         raise ValueError(f"unsupported web action: {step.action}")
 
@@ -186,7 +258,18 @@ class PlaywrightBackend:
             raise ValueError("navigate/assert_url step requires target.base_url or absolute url")
         return urljoin(str(target.base_url).rstrip("/") + "/", raw_url.lstrip("/"))
 
-    def _locator(self, page, selector: dict[str, object]):
+    def _resolve_url_pattern(self, target: ScenarioTarget, step: ScenarioStep) -> str:
+        selector = step.target.web if step.target and step.target.web else {}
+        raw_pattern = str(selector.get("url_pattern", step.value or ""))
+        if not raw_pattern:
+            raise ValueError("assert_url_pattern step requires target.web.url_pattern or step.value")
+        if raw_pattern.startswith(("http://", "https://")) or "*" in raw_pattern:
+            return raw_pattern
+        if target.base_url is None:
+            raise ValueError("assert_url_pattern step requires target.base_url, absolute url, or glob pattern")
+        return urljoin(str(target.base_url).rstrip("/") + "/", raw_pattern.lstrip("/"))
+
+    def _locator(self, page, selector: dict[str, object], *, step_id: str | None = None):
         if "role" in selector:
             return page.get_by_role(str(selector["role"]), name=selector.get("name"))
         if "test_id" in selector:
@@ -195,4 +278,29 @@ class PlaywrightBackend:
             return page.get_by_text(str(selector["text"]))
         if "css" in selector:
             return page.locator(str(selector["css"]))
-        raise ValueError(f"unsupported selector: {selector_description(selector)}")
+        if "label" in selector:
+            return page.get_by_label(str(selector["label"]))
+        if "placeholder" in selector:
+            return page.get_by_placeholder(str(selector["placeholder"]))
+        if "alt_text" in selector:
+            return page.get_by_alt_text(str(selector["alt_text"]))
+        if "title" in selector:
+            return page.get_by_title(str(selector["title"]))
+        raise ValueError(self._unsupported_selector_error(selector, step_id=step_id))
+
+    def _checkbox_state(self, step: ScenarioStep) -> bool:
+        if step.value is None:
+            return True
+        value = step.value.strip().lower()
+        if value in {"1", "true", "yes", "on", "checked"}:
+            return True
+        if value in {"0", "false", "no", "off", "unchecked"}:
+            return False
+        raise ValueError(
+            f"step '{step.id}' action '{step.action}' value {step.value!r}: "
+            "checkbox value must be true or false"
+        )
+
+    def _unsupported_selector_error(self, selector: dict[str, object], *, step_id: str | None = None) -> str:
+        step_prefix = f"step '{step_id}' " if step_id else ""
+        return f"{step_prefix}unsupported selector: {selector_description(selector)} payload={selector!r}"
