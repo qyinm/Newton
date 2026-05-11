@@ -409,10 +409,10 @@ uv run --extra dev --extra web pytest tests/test_cli.py -v
 
 ### 20. Harden installer verification
 
-- [ ] Add installer dry-run CI coverage for `uv`, `pipx`, `--no-web`, `--ref`, and `--repo`.
-- [ ] Document how to install a tagged release.
-- [ ] Add a post-install smoke path that does not require repository fixtures.
-- [ ] Avoid assuming users run installer from the Newton checkout.
+- [x] Add installer dry-run CI coverage for `uv`, `pipx`, `--no-web`, `--ref`, and `--repo`.
+- [x] Document how to install a tagged release.
+- [x] Add a post-install smoke path that does not require repository fixtures.
+- [x] Avoid assuming users run installer from the Newton checkout.
 
 Acceptance:
 

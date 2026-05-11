@@ -103,7 +103,20 @@ cat <<'DONE'
 
 Newton is installed.
 
-Try:
-  newton qa validate qa/dogfood/login/scenario/login-smoke.generated.yaml
-  newton qa bundle-validate qa/dogfood/login/plan
+Smoke it from any directory:
+tmpdir=$(mktemp -d)
+cat > "$tmpdir/login-ticket.md" <<'EOF'
+# Login
+
+Users should be able to log in with email and password.
+
+Acceptance criteria:
+- User can open login page
+- User can enter email
+- User can enter password
+- User can submit
+- User sees Dashboard
+EOF
+newton qa plan "$tmpdir/login-ticket.md" --agent template --target web --out "$tmpdir/scenarios"
+newton qa validate "$tmpdir/scenarios/login-smoke.generated.yaml"
 DONE

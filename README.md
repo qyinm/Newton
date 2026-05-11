@@ -26,6 +26,32 @@ The installer uses `uv tool install` when `uv` is available, falls back to `pipx
 curl -fsSL https://raw.githubusercontent.com/qyinm/Newton/main/scripts/install.sh | bash -s -- --no-web
 ```
 
+To install a tagged release instead of `main`, pass `--ref` through `bash -s --`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qyinm/Newton/main/scripts/install.sh | bash -s -- --ref v0.1.0
+```
+
+After installing, smoke the CLI from any directory without cloning this repository:
+
+```bash
+tmpdir=$(mktemp -d)
+cat > "$tmpdir/login-ticket.md" <<'EOF'
+# Login
+
+Users should be able to log in with email and password.
+
+Acceptance criteria:
+- User can open login page
+- User can enter email
+- User can enter password
+- User can submit
+- User sees Dashboard
+EOF
+newton qa plan "$tmpdir/login-ticket.md" --agent template --target web --out "$tmpdir/scenarios"
+newton qa validate "$tmpdir/scenarios/login-smoke.generated.yaml"
+```
+
 ## Claude Code Plugin
 
 Newton also ships a thin Claude Code plugin wrapper around the `newton` CLI. Add this repository as a Claude Code plugin marketplace, then install the `newton` plugin:
