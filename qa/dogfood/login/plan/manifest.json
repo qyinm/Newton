@@ -1,7 +1,6 @@
 {
   "contract_version": "v0.1",
   "plan_id": "login",
-  "bundle_dir_name": "plan",
   "input_path": "qa/dogfood/login/inputs/ticket.md",
   "source_paths": [
     "qa/dogfood/login/inputs/ticket.md",
@@ -16,5 +15,6 @@
     "qa_estimate": "qa/dogfood/login/plan/qa-estimate.md",
     "automation_candidates": "qa/dogfood/login/plan/automation-candidates.md",
     "qa_run_tracker": "qa/dogfood/login/plan/qa-run-tracker.md"
-  }
+  },
+  "bundle_dir_name": "plan"
 }

@@ -1,0 +1,41 @@
+scenario:
+  id: login-validation
+  title: Login validation failure
+  source_refs:
+  - qa/dogfood/login/inputs/policy.md
+  risk_category: edge case
+  priority: P0
+  environments:
+  - local
+targets:
+- id: web
+  platform: web
+  backend: playwright
+  base_url: http://127.0.0.1:8000
+steps:
+- id: open-login
+  action: navigate
+  target:
+    web:
+      url: /login.html
+- id: submit-empty-form
+  action: tap
+  target:
+    web:
+      role: button
+      name: Log in
+- id: assert-email-validation
+  action: assert_visible
+  target:
+    web:
+      text: Email is required
+- id: assert-password-validation
+  action: assert_visible
+  target:
+    web:
+      text: Password is required
+evidence:
+  screenshots: on_failure
+  video: false
+  logs: true
+  traces: true

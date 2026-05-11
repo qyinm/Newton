@@ -272,12 +272,12 @@ uv run --extra dev --extra web pytest tests/test_reporting.py tests/test_web_pla
 
 ### 13. Add a one-command web dogfood release demo
 
-- [ ] Replace or supplement the static login fixture with a small realistic web app fixture containing success, validation, network-delay, and permission-denied states.
-- [ ] Add at least three web scenarios: happy path, validation failure, and permission or policy conflict.
-- [ ] Add `scripts/demo-web-release.sh` that starts and stops local fixture servers, generates fresh artifacts, and prints output paths.
-- [ ] Remove manual README steps that require a separate `cp` or hard-coded committed run id.
-- [ ] Commit representative passing and failing run artifacts that demonstrate screenshot and trace evidence.
-- [ ] Document the dogfood flow as the release demo.
+- [x] Replace or supplement the static login fixture with a small realistic web app fixture containing success, validation, network-delay, and permission-denied states.
+- [x] Add at least three web scenarios: happy path, validation failure, and permission or policy conflict.
+- [x] Add `scripts/demo-web-release.sh` that starts and stops local fixture servers, generates fresh artifacts, and prints output paths.
+- [x] Remove manual README steps that require a separate `cp` or hard-coded committed run id.
+- [x] Commit representative passing and failing run artifacts that demonstrate screenshot and trace evidence.
+- [x] Document the dogfood flow as the release demo.
 
 Acceptance:
 

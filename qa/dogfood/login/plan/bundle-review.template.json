@@ -1,12 +1,12 @@
 {
   "agent": "template",
   "bundle_path": "qa/dogfood/login/plan",
-  "score": 88,
+  "score": 90,
   "verdict": "advisory_pass",
   "category_scores": {
     "coverage": 100,
     "source_grounding": 80,
-    "estimate_clarity": 80,
+    "estimate_clarity": 90,
     "risk_usefulness": 100,
     "automation_suitability": 80
   },
@@ -20,7 +20,7 @@
     {
       "severity": "low",
       "artifact": "qa-estimate.md",
-      "finding": "estimate_clarity scored 80/100 in the deterministic planning quality rubric.",
+      "finding": "estimate_clarity scored 90/100 in the deterministic planning quality rubric.",
       "suggestion": "Include effort size, evidence factors, manual QA time, assumptions, and score-band rationale."
     },
     {

@@ -1,7 +1,7 @@
 {
   "contract_version": "v0.1",
-  "run_id": "run_f268ce6c9e79",
-  "scenario_id": "login-smoke",
+  "run_id": "run_09b439251623",
+  "scenario_id": "login-permission",
   "target_id": "web",
   "platform": "web",
   "status": "passed",
@@ -11,15 +11,15 @@
       "action": "navigate",
       "status": "passed",
       "error": null,
-      "duration_ms": 56,
+      "duration_ms": 21,
       "evidence": []
     },
     {
-      "id": "enter-email",
+      "id": "enter-locked-email",
       "action": "input_text",
       "status": "passed",
       "error": null,
-      "duration_ms": 43,
+      "duration_ms": 34,
       "evidence": []
     },
     {
@@ -27,7 +27,7 @@
       "action": "input_text",
       "status": "passed",
       "error": null,
-      "duration_ms": 32,
+      "duration_ms": 40,
       "evidence": []
     },
     {
@@ -35,11 +35,11 @@
       "action": "tap",
       "status": "passed",
       "error": null,
-      "duration_ms": 32,
+      "duration_ms": 23,
       "evidence": []
     },
     {
-      "id": "assert-dashboard",
+      "id": "assert-recovery-guidance",
       "action": "assert_visible",
       "status": "passed",
       "error": null,
@@ -48,11 +48,14 @@
     }
   ],
   "evidence": [],
-  "planning": {
-    "provenance_path": "qa/dogfood/login/scenario/login_ticket.template.plan.json",
-    "agent": "template",
-    "input_path": "qa/dogfood/login/inputs/ticket.md",
-    "accepted_scenario_path": "qa/dogfood/login/scenario/login-smoke.generated.yaml",
-    "validation_status": "accepted"
-  }
+  "summary": {
+    "total_steps": 5,
+    "passed_steps": 5,
+    "failed_steps": 0,
+    "skipped_steps": 0,
+    "artifact_count": 0,
+    "total_duration_ms": 134,
+    "first_error": null
+  },
+  "planning": null
 }

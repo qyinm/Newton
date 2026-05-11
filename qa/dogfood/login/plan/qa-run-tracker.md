@@ -9,86 +9,276 @@
 ## Checklist Status
 
 - [ ] User can open login page from a direct `/login.html` route
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User can enter email
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User can enter password
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User can submit valid credentials
-  - env: dev
-  - status: not run
-  - notes:
-- [x] User sees Dashboard after successful submit
-  - env: stg
-  - status: failed
-  - notes: Run run_c96d5ae286d8 failed; report: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
+- [ ] User sees Dashboard after successful submit
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: failed
+    - notes: Run run_2c10f7b4e287 failed; report: qa/dogfood/login/runs/run_2c10f7b4e287/qa-report.md; result: qa/dogfood/login/runs/run_2c10f7b4e287/result.json; evidence: qa/dogfood/login/runs/run_2c10f7b4e287/failure-step-005-assert-dashboard.png, qa/dogfood/login/runs/run_2c10f7b4e287/playwright-trace.zip
+    - runs:
+      - Run run_2c10f7b4e287 failed; report: qa/dogfood/login/runs/run_2c10f7b4e287/qa-report.md; result: qa/dogfood/login/runs/run_2c10f7b4e287/result.json; evidence: qa/dogfood/login/runs/run_2c10f7b4e287/failure-step-005-assert-dashboard.png, qa/dogfood/login/runs/run_2c10f7b4e287/playwright-trace.zip
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Locked users see account recovery guidance before retrying
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Expired sessions return the user to login before protected dashboard access
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Existing dashboard navigation must continue to work after login.
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] The smoke scenario should remain stable enough to automate across dev and staging.
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Error message does not expose whether email exists
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Password failures keep the user on the login page with retry guidance
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Locked accounts show account recovery guidance instead of generic failure copy
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Session timeout requires a fresh login before opening protected dashboard content
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Security copy must not confirm account existence.
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Recovery guidance is required for locked accounts.
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Email field is exposed as a textbox named Email
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Password field exposes `data-testid="password-input"`
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Primary action is a button named Log in
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Successful submit reveals visible Dashboard text
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Use role/name selectors for visible controls.
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Use the password test ID because password fields can be inconsistently named by browsers.
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:

@@ -315,43 +315,10 @@ python -m playwright show-trace qa/runs/<run_id>/playwright-trace.zip
 The checked-in dogfood package under `qa/dogfood/login/` proves the full file-first loop on a realistic multi-source login sprint:
 
 ```bash
-newton qa plan-bundle qa/dogfood/login/inputs/ticket.md \
-  --source qa/dogfood/login/inputs/policy.md \
-  --source qa/dogfood/login/inputs/design-notes.md \
-  --out qa/dogfood/login \
-  --bundle-dir-name plan
-newton qa bundle-validate qa/dogfood/login/plan
-newton qa plan qa/dogfood/login/inputs/ticket.md \
-  --agent template \
-  --target web \
-  --base-url http://127.0.0.1:8000 \
-  --out qa/dogfood/login/scenario
-cp qa/dogfood/login/scenario/ticket.template.plan.json \
-  qa/dogfood/login/scenario/login_ticket.template.plan.json
-python -m http.server 8123 --bind 127.0.0.1 --directory qa/dogfood/login/web/passing
-newton qa run qa/dogfood/login/scenario/login-smoke.generated.yaml \
-  --target web \
-  --backend playwright \
-  --base-url http://127.0.0.1:8123 \
-  --plan-provenance qa/dogfood/login/scenario/login_ticket.template.plan.json \
-  --out qa/dogfood/login/runs
-python -m http.server 8124 --bind 127.0.0.1 --directory qa/dogfood/login/web/failing
-newton qa run qa/dogfood/login/scenario/login-smoke.generated.yaml \
-  --target web \
-  --backend playwright \
-  --base-url http://127.0.0.1:8124 \
-  --plan-provenance qa/dogfood/login/scenario/login_ticket.template.plan.json \
-  --allow-failure \
-  --out qa/dogfood/login/runs
-newton qa tracker-update-from-run qa/dogfood/login/plan/qa-run-tracker.md \
-  --item 5 \
-  --env stg \
-  --run qa/dogfood/login/runs/run_c96d5ae286d8
-newton qa bug-draft qa/dogfood/login/plan/qa-run-tracker.md \
-  --out qa/dogfood/login/bug-ticket-draft.md
+bash scripts/demo-web-release.sh
 ```
 
-The committed dogfood run set includes one passing Playwright run and one failing Playwright run with screenshot and trace evidence.
+The demo script starts local fixtures, regenerates the planning bundle, validates three web scenarios, runs passing and failing Playwright cases, updates the tracker from the failed run, writes a bug draft, and prints the artifact paths. The committed dogfood run set includes passing runs plus a failing Playwright run with screenshot and trace evidence.
 
 ## Backends
 

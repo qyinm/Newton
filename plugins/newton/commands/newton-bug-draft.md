@@ -11,10 +11,11 @@ This command closes Newton's release-quality web flow: use web-first run evidenc
 Use the user-provided tracker, run directory, item number, and environment when present. For the checked-in failing dogfood run:
 
 ```bash
+bash scripts/demo-web-release.sh
 newton qa tracker-update-from-run qa/dogfood/login/plan/qa-run-tracker.md \
   --item 5 \
   --env stg \
-  --run qa/dogfood/login/runs/run_c96d5ae286d8
+  --run <failed-run-dir>
 newton qa bug-draft qa/dogfood/login/plan/qa-run-tracker.md \
   --out qa/dogfood/login/bug-ticket-draft.md
 ```

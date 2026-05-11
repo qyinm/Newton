@@ -1,0 +1,53 @@
+{
+  "contract_version": "v0.1",
+  "run_id": "run_b6b49314b750",
+  "scenario_id": "login-validation",
+  "target_id": "web",
+  "platform": "web",
+  "status": "passed",
+  "steps": [
+    {
+      "id": "open-login",
+      "action": "navigate",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 22,
+      "evidence": []
+    },
+    {
+      "id": "submit-empty-form",
+      "action": "tap",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 78,
+      "evidence": []
+    },
+    {
+      "id": "assert-email-validation",
+      "action": "assert_visible",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 18,
+      "evidence": []
+    },
+    {
+      "id": "assert-password-validation",
+      "action": "assert_visible",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 6,
+      "evidence": []
+    }
+  ],
+  "evidence": [],
+  "summary": {
+    "total_steps": 4,
+    "passed_steps": 4,
+    "failed_steps": 0,
+    "skipped_steps": 0,
+    "artifact_count": 0,
+    "total_duration_ms": 124,
+    "first_error": null
+  },
+  "planning": null
+}

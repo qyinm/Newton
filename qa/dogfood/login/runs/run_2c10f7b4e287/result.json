@@ -1,6 +1,6 @@
 {
   "contract_version": "v0.1",
-  "run_id": "run_c96d5ae286d8",
+  "run_id": "run_2c10f7b4e287",
   "scenario_id": "login-smoke",
   "target_id": "web",
   "platform": "web",
@@ -11,7 +11,7 @@
       "action": "navigate",
       "status": "passed",
       "error": null,
-      "duration_ms": 68,
+      "duration_ms": 20,
       "evidence": []
     },
     {
@@ -19,7 +19,7 @@
       "action": "input_text",
       "status": "passed",
       "error": null,
-      "duration_ms": 46,
+      "duration_ms": 34,
       "evidence": []
     },
     {
@@ -27,7 +27,7 @@
       "action": "input_text",
       "status": "passed",
       "error": null,
-      "duration_ms": 35,
+      "duration_ms": 40,
       "evidence": []
     },
     {
@@ -35,7 +35,7 @@
       "action": "tap",
       "status": "passed",
       "error": null,
-      "duration_ms": 39,
+      "duration_ms": 28,
       "evidence": []
     },
     {
@@ -43,7 +43,7 @@
       "action": "assert_visible",
       "status": "failed",
       "error": "Locator.wait_for: Timeout 10000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Dashboard\") to be visible\n",
-      "duration_ms": 10067,
+      "duration_ms": 10052,
       "evidence": [
         {
           "kind": "screenshot",
@@ -65,8 +65,17 @@
       "description": "Playwright trace for failed run"
     }
   ],
+  "summary": {
+    "total_steps": 5,
+    "passed_steps": 4,
+    "failed_steps": 1,
+    "skipped_steps": 0,
+    "artifact_count": 2,
+    "total_duration_ms": 10174,
+    "first_error": "Locator.wait_for: Timeout 10000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Dashboard\") to be visible\n"
+  },
   "planning": {
-    "provenance_path": "qa/dogfood/login/scenario/login_ticket.template.plan.json",
+    "provenance_path": "qa/dogfood/login/scenario/ticket.template.plan.json",
     "agent": "template",
     "input_path": "qa/dogfood/login/inputs/ticket.md",
     "accepted_scenario_path": "qa/dogfood/login/scenario/login-smoke.generated.yaml",

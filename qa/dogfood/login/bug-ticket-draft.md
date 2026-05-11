@@ -14,7 +14,7 @@
 - Item: User sees Dashboard after successful submit
 - Environment: stg
 - Status: failed
-- Notes: Run run_c96d5ae286d8 failed; report: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md
+- Notes: Run-derived draft; see Source References.
 
 ## Reproduction Steps
 
@@ -37,13 +37,13 @@ Call log:
 ## Source References
 
 - Tracker: `qa/dogfood/login/plan/qa-run-tracker.md`
-- Run result: `qa/dogfood/login/runs/run_c96d5ae286d8/result.json`
-- Run report: `qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md`
+- Run result: `qa/dogfood/login/runs/run_2c10f7b4e287/result.json`
+- Run report: `qa/dogfood/login/runs/run_2c10f7b4e287/qa-report.md`
 - Planning input: `qa/dogfood/login/inputs/ticket.md`
 - Accepted scenario: `qa/dogfood/login/scenario/login-smoke.generated.yaml`
-- Plan provenance: `qa/dogfood/login/scenario/login_ticket.template.plan.json`
+- Plan provenance: `qa/dogfood/login/scenario/ticket.template.plan.json`
 
 ## Evidence Paths
 
-- `qa/dogfood/login/runs/run_c96d5ae286d8/failure-step-005-assert-dashboard.png`
-- `qa/dogfood/login/runs/run_c96d5ae286d8/playwright-trace.zip`
+- `qa/dogfood/login/runs/run_2c10f7b4e287/failure-step-005-assert-dashboard.png`
+- `qa/dogfood/login/runs/run_2c10f7b4e287/playwright-trace.zip`

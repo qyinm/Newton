@@ -1206,22 +1206,33 @@ def test_qa_report_prints_existing_report_path(tmp_path: Path):
     assert str(report_path) in result.stdout
 
 
+def _latest_dogfood_run_payload() -> tuple[dict[str, object], Path]:
+    entries = [
+        json.loads(line)
+        for line in Path("qa/dogfood/login/runs/index.jsonl").read_text().splitlines()
+        if line.strip()
+    ]
+    result_path = Path(str(entries[-1]["result_path"]))
+    return json.loads(result_path.read_text()), result_path.parent
+
+
 def test_qa_handoff_prints_dogfood_agent_packet():
+    payload, run_dir = _latest_dogfood_run_payload()
     result = CliRunner().invoke(app, ["qa", "handoff", "qa/dogfood/login"])
 
     assert result.exit_code == 0
     assert "bundle_path: qa/dogfood/login/plan" in result.stdout
     assert "scenario_path: qa/dogfood/login/scenario/login-smoke.generated.yaml" in result.stdout
-    assert "run_id: run_c96d5ae286d8" in result.stdout
-    assert "report_path: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md" in result.stdout
+    assert f"run_id: {payload['run_id']}" in result.stdout
+    assert f"report_path: {run_dir / 'qa-report.md'}" in result.stdout
     assert "evidence_paths:" in result.stdout
-    assert "  - qa/dogfood/login/runs/run_c96d5ae286d8/failure-step-005-assert-dashboard.png" in result.stdout
-    assert "  - qa/dogfood/login/runs/run_c96d5ae286d8/playwright-trace.zip" in result.stdout
+    assert f"  - {run_dir / 'playwright-trace.zip'}" in result.stdout
     assert "tracker_path: qa/dogfood/login/plan/qa-run-tracker.md" in result.stdout
     assert "bug_draft_path: qa/dogfood/login/bug-ticket-draft.md" in result.stdout
 
 
 def test_qa_handoff_writes_dogfood_agent_packet(tmp_path: Path):
+    payload, run_dir = _latest_dogfood_run_payload()
     out_path = tmp_path / "agent-handoff.md"
 
     result = CliRunner().invoke(app, ["qa", "handoff", "qa/dogfood/login", "--out", str(out_path)])
@@ -1231,8 +1242,8 @@ def test_qa_handoff_writes_dogfood_agent_packet(tmp_path: Path):
     packet = out_path.read_text()
     assert "bundle_path: qa/dogfood/login/plan" in packet
     assert "scenario_path: qa/dogfood/login/scenario/login-smoke.generated.yaml" in packet
-    assert "run_id: run_c96d5ae286d8" in packet
-    assert "report_path: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md" in packet
+    assert f"run_id: {payload['run_id']}" in packet
+    assert f"report_path: {run_dir / 'qa-report.md'}" in packet
     assert "tracker_path: qa/dogfood/login/plan/qa-run-tracker.md" in packet
     assert "bug_draft_path: qa/dogfood/login/bug-ticket-draft.md" in packet
 

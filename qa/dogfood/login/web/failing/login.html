@@ -2,11 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Newton Dogfood Login Failing Fixture</title>
+    <title>Newton Dogfood Permission Denied Fixture</title>
   </head>
   <body>
     <main>
       <h1>Login</h1>
+      <p>This fixture intentionally denies protected home access for failure evidence.</p>
       <form id="login-form">
         <label>Email <input aria-label="Email" name="email" type="email" /></label>
         <label>Password <input data-testid="password-input" name="password" type="password" /></label>
@@ -14,7 +15,7 @@
       </form>
       <section id="locked" hidden>
         <h2>Account recovery required</h2>
-        <p>The protected home screen is intentionally unavailable in this fixture.</p>
+        <p>Permission denied: the protected home screen is intentionally unavailable in this fixture.</p>
       </section>
     </main>
     <script>

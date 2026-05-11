@@ -1,0 +1,51 @@
+scenario:
+  id: login-permission
+  title: Login permission conflict
+  source_refs:
+  - qa/dogfood/login/inputs/policy.md
+  - qa/dogfood/login/inputs/design-notes.md
+  risk_category: permission/role
+  priority: P0
+  environments:
+  - local
+targets:
+- id: web
+  platform: web
+  backend: playwright
+  base_url: http://127.0.0.1:8000
+steps:
+- id: open-login
+  action: navigate
+  target:
+    web:
+      url: /login.html
+- id: enter-locked-email
+  action: input_text
+  target:
+    web:
+      role: textbox
+      name: Email
+  value: locked@example.com
+- id: enter-password
+  action: input_text
+  target:
+    web:
+      test_id: password-input
+  value: password123
+  secure: true
+- id: submit
+  action: tap
+  target:
+    web:
+      role: button
+      name: Log in
+- id: assert-recovery-guidance
+  action: assert_visible
+  target:
+    web:
+      text: Account recovery required
+evidence:
+  screenshots: on_failure
+  video: false
+  logs: true
+  traces: true

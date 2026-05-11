@@ -24,7 +24,10 @@ def test_login_dogfood_package_has_full_qa_loop_artifacts():
         DOGFOOD_ROOT / "plan" / "qa-run-tracker.md",
         DOGFOOD_ROOT / "plan" / "manifest.json",
         DOGFOOD_ROOT / "scenario" / "login-smoke.generated.yaml",
-        DOGFOOD_ROOT / "scenario" / "login_ticket.template.plan.json",
+        DOGFOOD_ROOT / "scenario" / "login-validation.generated.yaml",
+        DOGFOOD_ROOT / "scenario" / "login-permission.generated.yaml",
+        DOGFOOD_ROOT / "scenario" / "ticket.template.plan.json",
+        Path("scripts/demo-web-release.sh"),
         DOGFOOD_ROOT / "bug-ticket-draft.md",
     ]
 
@@ -38,13 +41,13 @@ def test_login_dogfood_plan_cites_multi_source_evidence():
 
     assert "## Evidence Factors" in estimate
     assert "`qa/dogfood/login/inputs/ticket.md`" in estimate
-    assert "`qa/dogfood/login/inputs/policy.md`" in estimate
-    assert "`qa/dogfood/login/inputs/design-notes.md`" in estimate
+    assert "`policy.md#Policy References`" in estimate
+    assert "`design-notes.md#Acceptance Criteria`" in estimate
 
 
 def test_login_dogfood_scenario_and_provenance_are_linked():
     scenario_path = DOGFOOD_ROOT / "scenario" / "login-smoke.generated.yaml"
-    provenance_path = DOGFOOD_ROOT / "scenario" / "login_ticket.template.plan.json"
+    provenance_path = DOGFOOD_ROOT / "scenario" / "ticket.template.plan.json"
 
     scenario = yaml.safe_load(scenario_path.read_text())
     provenance = json.loads(provenance_path.read_text())
@@ -52,6 +55,17 @@ def test_login_dogfood_scenario_and_provenance_are_linked():
     assert scenario["scenario"]["id"] == "login-smoke"
     assert provenance["validation_status"] == "accepted"
     assert Path(provenance["accepted_scenario_path"]) == scenario_path
+
+
+def test_login_dogfood_has_three_realistic_web_scenarios():
+    scenario_paths = sorted((DOGFOOD_ROOT / "scenario").glob("login-*.generated.yaml"))
+    scenario_ids = {yaml.safe_load(path.read_text())["scenario"]["id"] for path in scenario_paths}
+    fixture = (DOGFOOD_ROOT / "web" / "passing" / "login.html").read_text()
+
+    assert {"login-smoke", "login-validation", "login-permission"}.issubset(scenario_ids)
+    assert "Network delay simulation" in fixture
+    assert "Email is required" in fixture
+    assert "Permission denied" in fixture
 
 
 def test_login_dogfood_has_passing_and_failing_runs_with_evidence():
@@ -90,11 +104,10 @@ def test_login_dogfood_tracker_links_failed_run_and_bug_draft():
 @pytest.mark.parametrize(
     "snippet",
     [
-        "newton qa plan-bundle qa/dogfood/login/inputs/ticket.md",
-        "newton qa plan qa/dogfood/login/inputs/ticket.md",
-        "newton qa run qa/dogfood/login/scenario/login-smoke.generated.yaml",
-        "newton qa tracker-update-from-run qa/dogfood/login/plan/qa-run-tracker.md",
-        "newton qa bug-draft qa/dogfood/login/plan/qa-run-tracker.md",
+        "bash scripts/demo-web-release.sh",
+        "validates three web scenarios",
+        "updates the tracker from the failed run",
+        "writes a bug draft",
     ],
 )
 def test_readme_documents_login_dogfood_loop(snippet: str):
@@ -102,3 +115,11 @@ def test_readme_documents_login_dogfood_loop(snippet: str):
 
     assert "Dogfood: full QA loop" in readme
     assert snippet in readme
+
+
+def test_readme_uses_one_command_dogfood_demo_without_manual_run_id():
+    readme = Path("README.md").read_text()
+
+    assert "bash scripts/demo-web-release.sh" in readme
+    assert "cp qa/dogfood/login/scenario/ticket.template.plan.json" not in readme
+    assert "run_c96d5ae286d8" not in readme

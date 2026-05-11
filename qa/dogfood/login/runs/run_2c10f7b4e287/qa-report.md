@@ -1,9 +1,15 @@
 # QA Report: login-smoke
 
-**Run ID:** run_c96d5ae286d8
+**Run ID:** run_2c10f7b4e287
 **Target:** web
 **Platform:** web
 **Status:** failed
+
+## Run Summary
+
+| Total | Passed | Failed | Skipped | Artifacts | Duration |
+| --- | --- | --- | --- | --- | --- |
+| 5 | 4 | 1 | 0 | 2 | 10174 ms |
 
 ## Step Results
 
@@ -30,11 +36,23 @@ Call log:
 
 ## Planning Provenance
 
-**Provenance:** `qa/dogfood/login/scenario/login_ticket.template.plan.json`
+**Provenance:** `qa/dogfood/login/scenario/ticket.template.plan.json`
 **Agent:** template
 **Input:** `qa/dogfood/login/inputs/ticket.md`
 **Accepted Scenario:** `qa/dogfood/login/scenario/login-smoke.generated.yaml`
 **Validation Status:** accepted
+
+## Failure Diagnosis
+
+**First failed step:** `assert-dashboard`
+**Action:** `assert_visible`
+**Error:** Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("Dashboard") to be visible
+
+
+### Diagnostic Artifacts
+- `trace`: `playwright-trace.zip` — Playwright trace for failed run
 
 ## Bug Draft
 

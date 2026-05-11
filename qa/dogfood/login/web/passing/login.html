@@ -2,26 +2,79 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Newton Dogfood Login Passing Fixture</title>
+    <title>Newton Dogfood Login Fixture</title>
   </head>
   <body>
     <main>
       <h1>Login</h1>
+      <p>Fixture states: success, validation, network delay, and permission denied.</p>
       <form id="login-form">
         <label>Email <input aria-label="Email" name="email" type="email" /></label>
+        <p id="email-error" role="alert"></p>
         <label>Password <input data-testid="password-input" name="password" type="password" /></label>
+        <p id="password-error" role="alert"></p>
         <button type="submit">Log in</button>
       </form>
+      <section id="loading" hidden>
+        <h2>Checking credentials</h2>
+        <p>Network delay simulation in progress.</p>
+      </section>
+      <section id="locked" hidden>
+        <h2>Account recovery required</h2>
+        <p>Permission denied: locked users must complete account recovery before retrying.</p>
+      </section>
       <section id="dashboard" hidden>
         <h2>Dashboard</h2>
         <p>Welcome to Newton QA.</p>
       </section>
     </main>
     <script>
+      const email = document.querySelector('input[name="email"]');
+      const password = document.querySelector('input[name="password"]');
+      const emailError = document.getElementById('email-error');
+      const passwordError = document.getElementById('password-error');
+      const loading = document.getElementById('loading');
+      const locked = document.getElementById('locked');
+      const dashboard = document.getElementById('dashboard');
+
+      function resetState() {
+        emailError.textContent = '';
+        passwordError.textContent = '';
+        loading.hidden = true;
+        locked.hidden = true;
+        dashboard.hidden = true;
+      }
+
       document.getElementById('login-form').addEventListener('submit', (event) => {
         event.preventDefault();
-        document.getElementById('dashboard').hidden = false;
-        history.pushState({}, '', '/dashboard');
+        resetState();
+
+        let valid = true;
+        if (!email.value || !email.value.includes('@')) {
+          emailError.textContent = 'Email is required';
+          valid = false;
+        }
+        if (!password.value) {
+          passwordError.textContent = 'Password is required';
+          valid = false;
+        }
+        if (!valid) {
+          history.pushState({}, '', '/login-validation');
+          return;
+        }
+
+        if (email.value.toLowerCase() === 'locked@example.com') {
+          locked.hidden = false;
+          history.pushState({}, '', '/permission-denied');
+          return;
+        }
+
+        loading.hidden = false;
+        window.setTimeout(() => {
+          loading.hidden = true;
+          dashboard.hidden = false;
+          history.pushState({}, '', '/dashboard');
+        }, 350);
       });
     </script>
   </body>

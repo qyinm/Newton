@@ -1,0 +1,67 @@
+{
+  "contract_version": "v0.1",
+  "run_id": "run_1700d7cded40",
+  "scenario_id": "login-smoke",
+  "target_id": "web",
+  "platform": "web",
+  "status": "passed",
+  "steps": [
+    {
+      "id": "open-login",
+      "action": "navigate",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 21,
+      "evidence": []
+    },
+    {
+      "id": "enter-email",
+      "action": "input_text",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 33,
+      "evidence": []
+    },
+    {
+      "id": "enter-password",
+      "action": "input_text",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 41,
+      "evidence": []
+    },
+    {
+      "id": "submit",
+      "action": "tap",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 29,
+      "evidence": []
+    },
+    {
+      "id": "assert-dashboard",
+      "action": "assert_visible",
+      "status": "passed",
+      "error": null,
+      "duration_ms": 807,
+      "evidence": []
+    }
+  ],
+  "evidence": [],
+  "summary": {
+    "total_steps": 5,
+    "passed_steps": 5,
+    "failed_steps": 0,
+    "skipped_steps": 0,
+    "artifact_count": 0,
+    "total_duration_ms": 931,
+    "first_error": null
+  },
+  "planning": {
+    "provenance_path": "qa/dogfood/login/scenario/ticket.template.plan.json",
+    "agent": "template",
+    "input_path": "qa/dogfood/login/inputs/ticket.md",
+    "accepted_scenario_path": "qa/dogfood/login/scenario/login-smoke.generated.yaml",
+    "validation_status": "accepted"
+  }
+}
