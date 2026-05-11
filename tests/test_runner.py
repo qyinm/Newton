@@ -273,3 +273,53 @@ def test_run_scenario_applies_base_url_override(tmp_path: Path, monkeypatch: pyt
     )
 
     assert seen["base_url"] == "http://127.0.0.1:9000/"
+
+
+def test_run_scenario_redacts_secure_step_values_from_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    scenario = load_scenario(Path("tests/fixtures/scenarios/web_login_playwright.yaml"))
+
+    class RecordingBackend:
+        def run(self, scenario, target, run_dir):
+            from newton.models import EvidenceArtifact, RunResult, StepResult
+
+            return RunResult(
+                run_id=run_dir.name,
+                scenario_id=scenario.meta.id,
+                target_id=target.id,
+                platform=target.platform,
+                status="failed",
+                steps=[
+                    StepResult(
+                        id="password",
+                        action="fill",
+                        status="failed",
+                        error="browser error included password123",
+                        evidence=[
+                            EvidenceArtifact(
+                                kind="screenshot",
+                                path="failure.png",
+                                description="failure after password123",
+                            )
+                        ],
+                    )
+                ],
+            )
+
+    monkeypatch.setattr("newton.runner.get_backend", lambda name: RecordingBackend())
+
+    result = run_scenario(
+        scenario,
+        target_id="web",
+        run_dir=tmp_path,
+        backend_name="playwright",
+    )
+
+    run_path = tmp_path / result.run_id
+    result_text = (run_path / "result.json").read_text()
+    report_text = (run_path / "qa-report.md").read_text()
+
+    assert "password123" not in result.model_dump_json()
+    assert "password123" not in result_text
+    assert "password123" not in report_text
+    assert "[secure value redacted]" in result_text
+    assert "[secure value redacted]" in report_text

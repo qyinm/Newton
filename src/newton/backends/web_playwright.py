@@ -1,11 +1,76 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
+from typing import Any
 from urllib.parse import urljoin
 
 from newton.backends import playwright_setup
-from newton.models import EvidenceArtifact, RunResult, Scenario, ScenarioStep, ScenarioTarget, StepResult
+from newton.models import (
+    EvidenceArtifact,
+    RunResult,
+    Scenario,
+    ScenarioStep,
+    ScenarioTarget,
+    StepResult,
+    WebRuntimeConfig,
+)
+
+
+DEVICE_RUNTIME_ALIASES = {
+    "channel": "browser_channel",
+    "timezone_id": "timezone",
+    "storage_state": "storage_state_path",
+    "extra_headers": "extra_http_headers",
+}
+DEVICE_RUNTIME_KEYS = {
+    "headless",
+    "browser_channel",
+    "viewport",
+    "locale",
+    "timezone",
+    "permissions",
+    "storage_state_path",
+    "extra_http_headers",
+    "retries",
+    "timeout_ms",
+}
+
+
+@dataclass(frozen=True)
+class PlaywrightRuntimeConfig:
+    config: WebRuntimeConfig
+
+    @property
+    def retries(self) -> int:
+        return self.config.retries
+
+    @property
+    def timeout_ms(self) -> int:
+        return self.config.timeout_ms
+
+    def launch_options(self) -> dict[str, Any]:
+        options: dict[str, Any] = {"headless": self.config.headless}
+        if self.config.browser_channel is not None:
+            options["channel"] = self.config.browser_channel
+        return options
+
+    def context_options(self, run_dir: Path, *, record_video: bool) -> dict[str, Any]:
+        options: dict[str, Any] = {"record_video_dir": str(run_dir) if record_video else None}
+        if self.config.viewport is not None:
+            options["viewport"] = self.config.viewport.model_dump()
+        if self.config.locale is not None:
+            options["locale"] = self.config.locale
+        if self.config.timezone is not None:
+            options["timezone_id"] = self.config.timezone
+        if self.config.permissions:
+            options["permissions"] = self.config.permissions
+        if self.config.storage_state_path is not None:
+            options["storage_state"] = self.config.storage_state_path
+        if self.config.extra_http_headers:
+            options["extra_http_headers"] = self.config.extra_http_headers
+        return options
 
 
 def selector_description(selector: dict[str, object]) -> str:
@@ -49,18 +114,27 @@ class PlaywrightBackend:
         status = "passed"
         traces_enabled = scenario.evidence.traces
         trace_path = run_dir / "playwright-trace.zip"
+        runtime = self._runtime_config(target)
 
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            context = browser.new_context(record_video_dir=str(run_dir) if scenario.evidence.video else None)
+            browser = playwright.chromium.launch(**runtime.launch_options())
+            context = browser.new_context(**runtime.context_options(run_dir, record_video=scenario.evidence.video))
             if traces_enabled:
                 context.tracing.start(screenshots=True, snapshots=True, sources=True)
             page = context.new_page()
+            page.set_default_timeout(runtime.timeout_ms)
+            page.set_default_navigation_timeout(runtime.timeout_ms)
             try:
                 for index, step in enumerate(scenario.steps, start=1):
                     start = monotonic()
                     try:
-                        self._execute_step(page, target, step)
+                        self._execute_step_with_retries(
+                            page,
+                            target,
+                            step,
+                            retries=runtime.retries,
+                            timeout_ms=self._step_timeout_ms(step, runtime),
+                        )
                         step_results.append(
                             StepResult(
                                 id=step.id,
@@ -147,49 +221,84 @@ class PlaywrightBackend:
             evidence=run_evidence,
         )
 
-    def _execute_step(self, page, target: ScenarioTarget, step: ScenarioStep) -> None:
+    def _runtime_config(self, target: ScenarioTarget) -> PlaywrightRuntimeConfig:
+        device_payload = _web_runtime_payload_from_device(target.device)
+        web_payload = target.web.model_dump(exclude_unset=True)
+        return PlaywrightRuntimeConfig(WebRuntimeConfig.model_validate({**device_payload, **web_payload}))
+
+    def _step_timeout_ms(self, step: ScenarioStep, runtime: PlaywrightRuntimeConfig) -> int:
+        if "timeout_ms" in step.model_fields_set:
+            return step.timeout_ms
+        return runtime.timeout_ms
+
+    def _execute_step_with_retries(
+        self,
+        page,
+        target: ScenarioTarget,
+        step: ScenarioStep,
+        *,
+        retries: int,
+        timeout_ms: int | None = None,
+    ) -> None:
+        for attempt in range(retries + 1):
+            try:
+                self._execute_step(page, target, step, timeout_ms=timeout_ms)
+                return
+            except Exception:  # noqa: BLE001
+                if attempt >= retries:
+                    raise
+
+    def _execute_step(
+        self,
+        page,
+        target: ScenarioTarget,
+        step: ScenarioStep,
+        *,
+        timeout_ms: int | None = None,
+    ) -> None:
+        step_timeout_ms = step.timeout_ms if timeout_ms is None else timeout_ms
         selector = step.target.web if step.target and step.target.web else {}
         if step.action in {"navigate", "goto"}:
-            page.goto(self._resolve_url(target, step), wait_until="domcontentloaded", timeout=step.timeout_ms)
+            page.goto(self._resolve_url(target, step), wait_until="domcontentloaded", timeout=step_timeout_ms)
             return
         if step.action in {"tap", "click"}:
-            self._locator(page, selector, step_id=step.id).click(timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).click(timeout=step_timeout_ms)
             return
         if step.action in {"input_text", "fill"}:
-            self._locator(page, selector, step_id=step.id).fill(step.value or "", timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).fill(step.value or "", timeout=step_timeout_ms)
             return
         if step.action == "checkbox":
             self._locator(page, selector, step_id=step.id).set_checked(
                 self._checkbox_state(step),
-                timeout=step.timeout_ms,
+                timeout=step_timeout_ms,
             )
             return
         if step.action == "select_option":
             if step.value is None:
                 raise ValueError(f"step '{step.id}' action '{step.action}' requires step.value")
-            self._locator(page, selector, step_id=step.id).select_option(step.value, timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).select_option(step.value, timeout=step_timeout_ms)
             return
         if step.action == "press":
             if not step.value:
                 raise ValueError(f"step '{step.id}' action '{step.action}' requires step.value")
             if selector:
-                self._locator(page, selector, step_id=step.id).press(step.value, timeout=step.timeout_ms)
+                self._locator(page, selector, step_id=step.id).press(step.value, timeout=step_timeout_ms)
             else:
                 page.keyboard.press(step.value)
             return
         if step.action == "upload_file":
             if step.value is None:
                 raise ValueError(f"step '{step.id}' action '{step.action}' requires step.value")
-            self._locator(page, selector, step_id=step.id).set_input_files(step.value, timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).set_input_files(step.value, timeout=step_timeout_ms)
             return
         if step.action == "wait":
-            page.wait_for_timeout(step.timeout_ms)
+            page.wait_for_timeout(step_timeout_ms)
             return
         if step.action in {"assert_visible", "wait_for_selector", "expect_visible"}:
-            self._locator(page, selector, step_id=step.id).wait_for(state="visible", timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).wait_for(state="visible", timeout=step_timeout_ms)
             return
         if step.action in {"assert_hidden", "assert_not_visible"}:
-            self._locator(page, selector, step_id=step.id).wait_for(state="hidden", timeout=step.timeout_ms)
+            self._locator(page, selector, step_id=step.id).wait_for(state="hidden", timeout=step_timeout_ms)
             return
         if step.action == "assert_text":
             text = step.value or str(selector.get("text", ""))
@@ -200,28 +309,28 @@ class PlaywrightBackend:
 
                 expect(self._locator(page, selector, step_id=step.id)).to_contain_text(
                     text,
-                    timeout=step.timeout_ms,
+                    timeout=step_timeout_ms,
                 )
             else:
-                page.get_by_text(text).wait_for(state="visible", timeout=step.timeout_ms)
+                page.get_by_text(text).wait_for(state="visible", timeout=step_timeout_ms)
             return
         if step.action == "assert_url":
             expected_url = self._resolve_url(target, step)
-            page.wait_for_url(expected_url, timeout=step.timeout_ms)
+            page.wait_for_url(expected_url, timeout=step_timeout_ms)
             return
         if step.action == "assert_url_pattern":
             expected_pattern = self._resolve_url_pattern(target, step)
-            page.wait_for_url(expected_pattern, timeout=step.timeout_ms)
+            page.wait_for_url(expected_pattern, timeout=step_timeout_ms)
             return
         if step.action == "assert_enabled":
             from playwright.sync_api import expect
 
-            expect(self._locator(page, selector, step_id=step.id)).to_be_enabled(timeout=step.timeout_ms)
+            expect(self._locator(page, selector, step_id=step.id)).to_be_enabled(timeout=step_timeout_ms)
             return
         if step.action == "assert_disabled":
             from playwright.sync_api import expect
 
-            expect(self._locator(page, selector, step_id=step.id)).to_be_disabled(timeout=step.timeout_ms)
+            expect(self._locator(page, selector, step_id=step.id)).to_be_disabled(timeout=step_timeout_ms)
             return
         if step.action == "assert_value":
             if step.value is None:
@@ -230,7 +339,7 @@ class PlaywrightBackend:
 
             expect(self._locator(page, selector, step_id=step.id)).to_have_value(
                 step.value,
-                timeout=step.timeout_ms,
+                timeout=step_timeout_ms,
             )
             return
         raise ValueError(f"unsupported web action: {step.action}")
@@ -304,3 +413,12 @@ class PlaywrightBackend:
     def _unsupported_selector_error(self, selector: dict[str, object], *, step_id: str | None = None) -> str:
         step_prefix = f"step '{step_id}' " if step_id else ""
         return f"{step_prefix}unsupported selector: {selector_description(selector)} payload={selector!r}"
+
+
+def _web_runtime_payload_from_device(device: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key, value in device.items():
+        runtime_key = DEVICE_RUNTIME_ALIASES.get(key, key)
+        if runtime_key in DEVICE_RUNTIME_KEYS:
+            payload[runtime_key] = value
+    return payload

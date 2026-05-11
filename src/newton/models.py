@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Mapping
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, Field, HttpUrl, field_validator, model_validator
 
 ARTIFACT_CONTRACT_VERSION = "v0.1"
 
@@ -136,6 +136,66 @@ class ScenarioMeta(BaseModel):
         return value
 
 
+class WebViewport(BaseModel):
+    width: int
+    height: int
+
+    @field_validator("width", "height")
+    @classmethod
+    def dimension_must_be_positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("viewport dimensions must be greater than 0")
+        return value
+
+
+class WebRuntimeConfig(BaseModel):
+    headless: bool = True
+    browser_channel: str | None = None
+    viewport: WebViewport | None = None
+    locale: str | None = None
+    timezone: str | None = None
+    permissions: list[str] = Field(default_factory=list)
+    storage_state_path: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("storage_state_path", "storage_state"),
+    )
+    extra_http_headers: dict[str, str] = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("extra_http_headers", "extra_headers"),
+    )
+    retries: int = 0
+    timeout_ms: int = 10_000
+
+    @field_validator("browser_channel", "locale", "timezone", "storage_state_path")
+    @classmethod
+    def optional_strings_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("web runtime string settings must not be blank")
+        return value
+
+    @field_validator("permissions")
+    @classmethod
+    def permissions_must_not_be_blank(cls, value: list[str]) -> list[str]:
+        blank_permissions = [permission for permission in value if not permission.strip()]
+        if blank_permissions:
+            raise ValueError("web runtime permissions must not be blank")
+        return value
+
+    @field_validator("retries")
+    @classmethod
+    def retries_must_not_be_negative(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("web runtime retries must be greater than or equal to 0")
+        return value
+
+    @field_validator("timeout_ms")
+    @classmethod
+    def timeout_must_be_positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("web runtime timeout_ms must be greater than 0")
+        return value
+
+
 class ScenarioTarget(BaseModel):
     id: str
     platform: Platform
@@ -144,6 +204,7 @@ class ScenarioTarget(BaseModel):
     bundle_id: str | None = None
     build: str | None = None
     device: dict[str, Any] = Field(default_factory=dict)
+    web: WebRuntimeConfig = Field(default_factory=WebRuntimeConfig)
 
     @model_validator(mode="after")
     def validate_backend_contract(self) -> "ScenarioTarget":

@@ -6,7 +6,7 @@ from uuid import uuid4
 from newton.backends.base import DryRunBackend, ExecutionBackend
 from newton.models import Platform, RunResult, Scenario, ScenarioTarget
 from newton.plan_provenance import planning_metadata_from_provenance
-from newton.reporting import render_markdown_report
+from newton.reporting import redact_run_result, render_markdown_report
 from newton.run_index import append_run_index
 
 
@@ -71,6 +71,7 @@ def run_scenario(
     actual_run_dir = run_dir / make_run_id()
     result = backend.run(scenario, target, actual_run_dir)
     result.planning = planning
+    result = redact_run_result(result, scenario)
 
     actual_run_dir.mkdir(parents=True, exist_ok=True)
     (actual_run_dir / "result.json").write_text(result.model_dump_json(indent=2))

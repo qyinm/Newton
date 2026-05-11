@@ -31,7 +31,26 @@ targets:
     platform: web
     backend: playwright
     base_url: https://staging.example.com
+    web:
+      headless: true
+      browser_channel: chrome
+      viewport:
+        width: 1440
+        height: 900
+      locale: en-US
+      timezone: America/Los_Angeles
+      permissions:
+        - clipboard-read
+      storage_state_path: qa/state/staging.json
+      extra_http_headers:
+        X-QA-Run: release-gate
+      retries: 1
+      timeout_ms: 10000
 ```
+
+`web` is the preferred production-like runtime configuration for Playwright targets.
+For compatibility with device-shaped scenario drafts, Newton also reads the same
+runtime keys from `targets[].device` when `targets[].web` does not override them.
 
 iOS target:
 
@@ -60,6 +79,24 @@ steps:
       ios:
         accessibility_id: loginButton
 ```
+
+Step timeout defaults to `10000` ms. Override a single slow or intentionally
+short assertion with `timeout_ms` on that step:
+
+```yaml
+steps:
+  - id: wait-for-dashboard
+    action: assert_visible
+    timeout_ms: 30000
+    target:
+      web:
+        role: heading
+        name: Dashboard
+```
+
+Sensitive input values should set `secure: true`. Newton redacts secure step
+values from generated `result.json` and `qa-report.md` if browser or backend
+errors echo those values.
 
 ## Supported Actions in MVP
 

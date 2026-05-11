@@ -1,6 +1,37 @@
 from __future__ import annotations
 
-from newton.models import EvidenceArtifact, RunResult
+from typing import Any
+
+from newton.models import EvidenceArtifact, RunResult, Scenario
+
+
+REDACTED_SECURE_VALUE = "[secure value redacted]"
+
+
+def redact_run_result(result: RunResult, scenario: Scenario) -> RunResult:
+    secure_values = _secure_step_values(scenario)
+    if not secure_values:
+        return result
+    redacted_payload = _redact_value(result.model_dump(mode="json"), secure_values)
+    return RunResult.model_validate(redacted_payload)
+
+
+def _secure_step_values(scenario: Scenario) -> list[str]:
+    values = {step.value for step in scenario.steps if step.secure and step.value}
+    return sorted(values, key=len, reverse=True)
+
+
+def _redact_value(value: Any, secure_values: list[str]) -> Any:
+    if isinstance(value, str):
+        redacted = value
+        for secure_value in secure_values:
+            redacted = redacted.replace(secure_value, REDACTED_SECURE_VALUE)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_value(item, secure_values) for item in value]
+    if isinstance(value, dict):
+        return {key: _redact_value(item, secure_values) for key, item in value.items()}
+    return value
 
 
 def render_markdown_report(result: RunResult) -> str:

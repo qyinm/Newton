@@ -1,4 +1,5 @@
-from newton.models import EvidenceArtifact, RunResult, StepResult
+from newton import reporting
+from newton.models import EvidenceArtifact, RunResult, Scenario, StepResult
 from newton.reporting import render_markdown_report
 
 
@@ -71,3 +72,59 @@ def test_render_markdown_report_includes_optional_planning_provenance():
     assert "**Agent:** codex" in markdown
     assert "**Input:** `tests/fixtures/inputs/login_ticket.md`" in markdown
     assert "**Accepted Scenario:** `qa/generated/login-smoke.generated.yaml`" in markdown
+
+
+def test_redact_run_result_removes_secure_step_values_from_reportable_fields():
+    scenario = Scenario.model_validate(
+        {
+            "scenario": {"id": "secure-login", "title": "Secure login"},
+            "targets": [
+                {
+                    "id": "web",
+                    "platform": "web",
+                    "backend": "playwright",
+                    "base_url": "https://example.com",
+                }
+            ],
+            "steps": [
+                {
+                    "id": "password",
+                    "action": "fill",
+                    "secure": True,
+                    "value": "super-secret-password",
+                    "target": {"web": {"label": "Password"}},
+                }
+            ],
+        }
+    )
+    result = RunResult(
+        run_id="run_001",
+        scenario_id="secure-login",
+        target_id="web",
+        platform="web",
+        status="failed",
+        steps=[
+            StepResult(
+                id="password",
+                action="fill",
+                status="failed",
+                error="Playwright echoed super-secret-password in an error",
+                evidence=[
+                    EvidenceArtifact(
+                        kind="screenshot",
+                        path="failure.png",
+                        description="Failure after super-secret-password",
+                    )
+                ],
+            )
+        ],
+    )
+
+    assert hasattr(reporting, "redact_run_result")
+
+    redacted = reporting.redact_run_result(result, scenario)
+    markdown = render_markdown_report(redacted)
+
+    assert "super-secret-password" not in redacted.model_dump_json()
+    assert "super-secret-password" not in markdown
+    assert "[secure value redacted]" in markdown

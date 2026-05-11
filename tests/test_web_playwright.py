@@ -156,6 +156,125 @@ def test_playwright_backend_unsupported_selector_error_includes_step_id_and_payl
     assert "{'xpath': \"//button[text()='Save']\"}" in message
 
 
+def test_playwright_backend_builds_runtime_options_from_web_config(tmp_path: Path):
+    storage_state = tmp_path / "storage-state.json"
+    target = ScenarioTarget.model_validate(
+        {
+            "id": "web",
+            "platform": "web",
+            "backend": "playwright",
+            "base_url": "http://127.0.0.1:8000",
+            "web": {
+                "headless": False,
+                "browser_channel": "chrome",
+                "viewport": {"width": 1366, "height": 768},
+                "locale": "ko-KR",
+                "timezone": "Asia/Seoul",
+                "permissions": ["clipboard-read"],
+                "storage_state_path": str(storage_state),
+                "extra_http_headers": {"X-QA-Run": "release"},
+                "retries": 2,
+            },
+        }
+    )
+
+    runtime = PlaywrightBackend()._runtime_config(target)
+
+    assert runtime.launch_options() == {"headless": False, "channel": "chrome"}
+    assert runtime.context_options(tmp_path, record_video=True) == {
+        "record_video_dir": str(tmp_path),
+        "viewport": {"width": 1366, "height": 768},
+        "locale": "ko-KR",
+        "timezone_id": "Asia/Seoul",
+        "permissions": ["clipboard-read"],
+        "storage_state": str(storage_state),
+        "extra_http_headers": {"X-QA-Run": "release"},
+    }
+    assert runtime.retries == 2
+
+
+def test_playwright_backend_maps_device_config_to_runtime_options():
+    target = ScenarioTarget.model_validate(
+        {
+            "id": "web",
+            "platform": "web",
+            "backend": "playwright",
+            "base_url": "http://127.0.0.1:8000",
+            "device": {
+                "headless": False,
+                "browser_channel": "msedge",
+                "viewport": {"width": 390, "height": 844},
+                "locale": "en-US",
+                "timezone": "America/Los_Angeles",
+                "permissions": ["geolocation"],
+                "storage_state_path": "qa/state.json",
+                "extra_http_headers": {"X-Preview": "1"},
+                "retries": 1,
+            },
+        }
+    )
+
+    runtime = PlaywrightBackend()._runtime_config(target)
+
+    assert runtime.launch_options() == {"headless": False, "channel": "msedge"}
+    assert runtime.context_options(Path("runs/run_1"), record_video=False) == {
+        "record_video_dir": None,
+        "viewport": {"width": 390, "height": 844},
+        "locale": "en-US",
+        "timezone_id": "America/Los_Angeles",
+        "permissions": ["geolocation"],
+        "storage_state": "qa/state.json",
+        "extra_http_headers": {"X-Preview": "1"},
+    }
+    assert runtime.retries == 1
+
+
+def test_playwright_backend_retries_failed_steps(monkeypatch: pytest.MonkeyPatch):
+    target = ScenarioTarget.model_validate(
+        {
+            "id": "web",
+            "platform": "web",
+            "backend": "playwright",
+            "base_url": "http://127.0.0.1:8000",
+        }
+    )
+    step = ScenarioStep(id="flaky-click", action="click", target=TargetBinding(web={"css": "#save"}))
+    backend = PlaywrightBackend()
+    attempts = 0
+
+    def flaky_execute(page, target, step, *, timeout_ms=None):  # noqa: ANN001
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise RuntimeError("temporary overlay")
+
+    monkeypatch.setattr(backend, "_execute_step", flaky_execute)
+
+    backend._execute_step_with_retries(object(), target, step, retries=1)
+
+    assert attempts == 2
+
+
+def test_playwright_backend_uses_runtime_timeout_unless_step_overrides_it():
+    backend = PlaywrightBackend()
+    runtime = backend._runtime_config(
+        ScenarioTarget.model_validate(
+            {
+                "id": "web",
+                "platform": "web",
+                "backend": "playwright",
+                "base_url": "http://127.0.0.1:8000",
+                "web": {"timeout_ms": 30000},
+            }
+        )
+    )
+    default_step = ScenarioStep(id="default-timeout", action="wait")
+    override_step = ScenarioStep(id="short-timeout", action="wait", timeout_ms=250)
+
+    assert backend._step_timeout_ms(default_step, runtime) == 30000
+    assert backend._step_timeout_ms(override_step, runtime) == 250
+
+
 @pytest.mark.skipif(not HAS_PLAYWRIGHT, reason="Playwright package is required for browser integration")
 def test_playwright_backend_runs_login_fixture(playwright_fixture_base_url: str, tmp_path: Path):
     scenario = load_scenario(Path("tests/fixtures/scenarios/web_login_playwright.yaml"))

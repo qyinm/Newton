@@ -231,11 +231,11 @@ uv run --extra dev --extra web pytest tests/test_web_playwright.py -v
 
 ### 11. Add web run configuration for production-like environments
 
-- [ ] Add scenario or CLI support for headless mode, browser channel, viewport, locale, timezone, permissions, storage state path, extra headers, and retries.
-- [ ] Map `ScenarioTarget.device` or a dedicated web runtime config into Playwright context settings.
-- [ ] Redact secure step values in reports and result JSON.
-- [ ] Add timeout defaults and per-step override documentation.
-- [ ] Add tests proving config is applied and secrets are not emitted.
+- [x] Add scenario or CLI support for headless mode, browser channel, viewport, locale, timezone, permissions, storage state path, extra headers, and retries.
+- [x] Map `ScenarioTarget.device` or a dedicated web runtime config into Playwright context settings.
+- [x] Redact secure step values in reports and result JSON.
+- [x] Add timeout defaults and per-step override documentation.
+- [x] Add tests proving config is applied and secrets are not emitted.
 
 Acceptance:
 

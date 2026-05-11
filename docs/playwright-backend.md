@@ -41,6 +41,61 @@ newton qa report qa/runs/<run_id>
 
 `--base-url` overrides the scenario target's `base_url`, which lets the same scenario run against local fixtures, preview deployments, staging, or production.
 
+## Production-like runtime config
+
+Configure browser launch and context settings in the web target:
+
+```yaml
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: https://staging.example.com
+    web:
+      headless: true
+      browser_channel: chrome
+      viewport:
+        width: 1440
+        height: 900
+      locale: en-US
+      timezone: America/Los_Angeles
+      permissions:
+        - clipboard-read
+      storage_state_path: qa/state/staging.json
+      extra_http_headers:
+        X-QA-Run: release-gate
+      retries: 1
+      timeout_ms: 10000
+```
+
+Newton maps these settings to Playwright as follows:
+
+- `headless` and `browser_channel` become Chromium launch options.
+- `viewport`, `locale`, `timezone`, `permissions`, `storage_state_path`, and `extra_http_headers` become browser context options.
+- `retries` retries each failing step before the run is marked failed.
+- `timeout_ms` sets Playwright's default timeout and navigation timeout for the page.
+
+Newton also accepts these same runtime keys under `targets[].device` for older or
+agent-generated scenario drafts. Values in `targets[].web` take precedence.
+
+Every step defaults to `timeout_ms: 10000`. Add `timeout_ms` to an individual
+step to override that action's Playwright timeout:
+
+```yaml
+steps:
+  - id: assert-dashboard
+    action: assert_visible
+    timeout_ms: 30000
+    target:
+      web:
+        role: heading
+        name: Dashboard
+```
+
+For passwords, tokens, or other sensitive input, set `secure: true` on the step.
+Generated `result.json` and `qa-report.md` redact secure step values if backend
+errors or evidence descriptions echo them.
+
 ## CI release gate
 
 For release gates, call `newton qa run` without `--allow-failure`:
