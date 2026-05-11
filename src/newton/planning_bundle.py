@@ -1101,7 +1101,24 @@ def _render_automation_candidates(title: str, checklist_items: list[str]) -> str
 
 def _render_run_tracker(title: str, checklist_items: list[str]) -> str:
     checklist_status = "\n".join(
-        f"- [ ] {item}\n  - env: dev\n  - status: not run\n  - notes:" for item in checklist_items
+        "\n".join(
+            [
+                f"- [ ] {item}",
+                "  - dev:",
+                "    - status: not run",
+                "    - notes:",
+                "    - runs:",
+                "  - stg:",
+                "    - status: not run",
+                "    - notes:",
+                "    - runs:",
+                "  - prod:",
+                "    - status: not run",
+                "    - notes:",
+                "    - runs:",
+            ]
+        )
+        for item in checklist_items
     )
     return f"""# QA Run Tracker: {title}
 

@@ -9,34 +9,106 @@
 ## Checklist Status
 
 - [ ] User can open login page
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User can enter email
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User can enter password
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User can submit
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User sees Dashboard
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Error message does not expose whether email exists
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Locked users see account recovery guidance
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] Session timeout returns user to login before protected dashboard access
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:

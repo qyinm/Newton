@@ -64,3 +64,35 @@ def test_write_bug_ticket_draft_rejects_tracker_without_failed_item(tmp_path: Pa
 
     with pytest.raises(BugDraftError, match="no failed tracker item found"):
         write_bug_ticket_draft(tracker_path)
+
+
+def test_write_bug_ticket_draft_reads_environment_matrix_tracker(tmp_path: Path):
+    tracker_path = tmp_path / "qa-run-tracker.md"
+    tracker_path.write_text(
+        """# QA Run Tracker: Login
+
+## Checklist Status
+
+- [ ] User sees Dashboard
+  - dev:
+    - status: passed
+    - notes: ok
+    - runs:
+  - stg:
+    - status: failed
+    - notes: Dashboard never appears after submit
+    - runs:
+      - Run run_123 failed; report: /tmp/run_123/qa-report.md
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
+"""
+    )
+
+    output_path = write_bug_ticket_draft(tracker_path)
+
+    draft = output_path.read_text()
+    assert "# Bug Ticket Draft: User sees Dashboard" in draft
+    assert "Environment: stg" in draft
+    assert "Dashboard never appears after submit" in draft

@@ -32,19 +32,19 @@ def write_bug_ticket_draft(tracker_path: Path, output_path: Path | None = None) 
 def _first_failed_tracker_item(markdown: str) -> FailedTrackerItem | None:
     current_item: str | None = None
     current_env = "dev"
-    current_status = "not run"
-    current_notes = ""
+    current_envs: dict[str, dict[str, str]] = {"dev": {"status": "not run", "notes": ""}}
 
     def flush() -> FailedTrackerItem | None:
         if current_item is None:
             return None
-        if current_status.strip().lower() == "failed":
-            return FailedTrackerItem(
-                item=current_item,
-                env=current_env.strip() or "dev",
-                status="failed",
-                notes=current_notes.strip(),
-            )
+        for env, state in current_envs.items():
+            if state["status"].strip().lower() == "failed":
+                return FailedTrackerItem(
+                    item=current_item,
+                    env=env.strip() or "dev",
+                    status="failed",
+                    notes=state["notes"].strip(),
+                )
         return None
 
     for line in markdown.splitlines():
@@ -55,19 +55,35 @@ def _first_failed_tracker_item(markdown: str) -> FailedTrackerItem | None:
                 return failed
             current_item = _tracker_item_text(stripped)
             current_env = "dev"
-            current_status = "not run"
-            current_notes = ""
+            current_envs = {"dev": {"status": "not run", "notes": ""}}
             continue
         if current_item is None:
             continue
+        env_heading = _environment_heading(stripped)
+        if env_heading is not None:
+            current_env = env_heading
+            current_envs.setdefault(current_env, {"status": "not run", "notes": ""})
+            continue
         if stripped.startswith("- env:"):
             current_env = stripped.removeprefix("- env:").strip()
+            current_envs.setdefault(current_env, {"status": "not run", "notes": ""})
         elif stripped.startswith("- status:"):
-            current_status = stripped.removeprefix("- status:").strip()
+            current_envs.setdefault(current_env, {"status": "not run", "notes": ""})["status"] = (
+                stripped.removeprefix("- status:").strip()
+            )
         elif stripped.startswith("- notes:"):
-            current_notes = stripped.removeprefix("- notes:").strip()
+            current_envs.setdefault(current_env, {"status": "not run", "notes": ""})["notes"] = (
+                stripped.removeprefix("- notes:").strip()
+            )
 
     return flush()
+
+
+def _environment_heading(stripped: str) -> str | None:
+    for env in ("dev", "stg", "prod"):
+        if stripped == f"- {env}:":
+            return env
+    return None
 
 
 def _tracker_item_text(stripped_line: str) -> str:

@@ -25,6 +25,10 @@ def test_validate_planning_bundle_accepts_generated_bundle(tmp_path: Path):
     assert result.tracker_items == 5
     manifest = json.loads((bundle_dir / "manifest.json").read_text())
     assert manifest["contract_version"] == ARTIFACT_CONTRACT_VERSION
+    tracker = (bundle_dir / "qa-run-tracker.md").read_text()
+    assert "- [ ] User can open login page\n  - dev:\n    - status: not run" in tracker
+    assert "  - stg:\n    - status: not run\n    - notes:\n    - runs:" in tracker
+    assert "  - prod:\n    - status: not run\n    - notes:\n    - runs:" in tracker
 
 
 def test_validate_planning_bundle_rejects_missing_artifact(tmp_path: Path):
@@ -59,12 +63,65 @@ def test_validate_planning_bundle_rejects_tracker_count_mismatch(tmp_path: Path)
         out_dir=tmp_path,
     )
     tracker = (bundle_dir / "qa-run-tracker.md").read_text()
-    tracker = tracker.replace("- [ ] User sees Dashboard\n  - env: dev\n  - status: not run\n  - notes:\n", "")
+    tracker = tracker.replace(
+        """- [ ] User sees Dashboard
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
+""",
+        "",
+    )
     (bundle_dir / "qa-run-tracker.md").write_text(tracker)
 
     with pytest.raises(
         PlanningBundleValidationError,
         match="checklist/tracker count mismatch: 5 != 4",
+    ):
+        validate_planning_bundle(bundle_dir)
+
+
+def test_validate_planning_bundle_rejects_tracker_item_text_mismatch(tmp_path: Path):
+    bundle_dir = generate_planning_bundle(
+        Path("tests/fixtures/inputs/login_ticket.md"),
+        out_dir=tmp_path,
+    )
+    tracker_path = bundle_dir / "qa-run-tracker.md"
+    tracker = tracker_path.read_text().replace("User sees Dashboard", "User sees Settings", 1)
+    tracker_path.write_text(tracker)
+
+    with pytest.raises(
+        PlanningBundleValidationError,
+        match="tracker/checklist item mismatch at item 5",
+    ):
+        validate_planning_bundle(bundle_dir)
+
+
+def test_validate_planning_bundle_rejects_tracker_item_missing_environment(tmp_path: Path):
+    bundle_dir = generate_planning_bundle(
+        Path("tests/fixtures/inputs/login_ticket.md"),
+        out_dir=tmp_path,
+    )
+    tracker_path = bundle_dir / "qa-run-tracker.md"
+    tracker = tracker_path.read_text()
+    tracker = tracker.replace(
+        "  - prod:\n    - status: not run\n    - notes:\n    - runs:\n",
+        "",
+        1,
+    )
+    tracker_path.write_text(tracker)
+
+    with pytest.raises(
+        PlanningBundleValidationError,
+        match="tracker item 1 missing environment: prod",
     ):
         validate_planning_bundle(bundle_dir)
 

@@ -103,9 +103,10 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
     assert "- prod: not run" in tracker
     assert "## Checklist Status" in tracker
     assert "- [ ] User can open login page" in tracker
-    assert "  - env: dev" in tracker
-    assert "  - status: not run" in tracker
-    assert "  - notes:" in tracker
+    assert "  - dev:" in tracker
+    assert "    - status: not run" in tracker
+    assert "    - notes:" in tracker
+    assert "    - runs:" in tracker
 
 
 def test_generate_planning_bundle_merges_additional_markdown_sources(tmp_path: Path):

@@ -296,10 +296,10 @@ bash scripts/demo-web-release.sh
 
 ### 14. Strengthen tracker updates
 
-- [ ] Track each checklist item across dev, stg, and prod rather than storing only one current environment per item.
-- [ ] Preserve historical run links per environment.
-- [ ] Support manual status updates and run-derived updates with the same output shape.
-- [ ] Add validation for tracker consistency with checklist and test cases.
+- [x] Track each checklist item across dev, stg, and prod rather than storing only one current environment per item.
+- [x] Preserve historical run links per environment.
+- [x] Support manual status updates and run-derived updates with the same output shape.
+- [x] Add validation for tracker consistency with checklist and test cases.
 
 Acceptance:
 

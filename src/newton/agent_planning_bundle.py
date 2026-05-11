@@ -532,7 +532,25 @@ def _render_run_tracker(title: str, checklist: list[object]) -> str:
     status_lines = []
     for item in checklist:
         assert isinstance(item, dict)
-        status_lines.append(f"- [ ] {item['title']}\n  - env: dev\n  - status: not run\n  - notes:")
+        status_lines.append(
+            "\n".join(
+                [
+                    f"- [ ] {item['title']}",
+                    "  - dev:",
+                    "    - status: not run",
+                    "    - notes:",
+                    "    - runs:",
+                    "  - stg:",
+                    "    - status: not run",
+                    "    - notes:",
+                    "    - runs:",
+                    "  - prod:",
+                    "    - status: not run",
+                    "    - notes:",
+                    "    - runs:",
+                ]
+            )
+        )
     return f"""# QA Run Tracker: {title}
 
 ## Environment Status

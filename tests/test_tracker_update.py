@@ -18,13 +18,32 @@ TRACKER = """# QA Run Tracker: Login
 ## Checklist Status
 
 - [ ] User can open login page
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+      - Run old_stg failed; report: /tmp/old-report.md
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 - [ ] User sees Dashboard
-  - env: dev
-  - status: not run
-  - notes:
+  - dev:
+    - status: not run
+    - notes:
+    - runs:
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
 """
 
 
@@ -45,11 +64,16 @@ def test_update_tracker_item_updates_generated_tracker_block(tmp_path: Path):
     assert "- dev: not run" in updated
     assert "- stg: failed" in updated
     assert "- prod: not run" in updated
-    assert "- [ ] User can open login page\n  - env: dev\n  - status: not run\n  - notes:" in updated
-    assert "- [x] User sees Dashboard\n  - env: stg\n  - status: failed\n  - notes: Dashboard never appears after submit" in updated
+    assert "- [ ] User can open login page\n  - dev:\n    - status: not run" in updated
+    assert "      - Run old_stg failed; report: /tmp/old-report.md" in updated
+    assert "- [ ] User sees Dashboard" in updated
+    assert "  - dev:\n    - status: not run\n    - notes:\n    - runs:" in updated
+    assert "  - stg:\n    - status: failed\n    - notes: Dashboard never appears after submit\n    - runs:" in updated
+    assert "  - prod:\n    - status: not run\n    - notes:\n    - runs:" in updated
+    assert "  - env:" not in updated
 
 
-def test_update_tracker_item_from_run_maps_result_status_and_links_run(tmp_path: Path):
+def test_update_tracker_item_from_run_maps_result_status_and_preserves_run_history(tmp_path: Path):
     tracker_path = tmp_path / "qa-run-tracker.md"
     tracker_path.write_text(TRACKER)
     run_path = tmp_path / "runs" / "run_123"
@@ -63,8 +87,10 @@ def test_update_tracker_item_from_run_maps_result_status_and_links_run(tmp_path:
 
     updated = tracker_path.read_text()
     assert "- stg: passed" in updated
-    assert "- [x] User can open login page\n  - env: stg\n  - status: passed" in updated
-    assert "  - notes: Run run_123 passed; report:" in updated
+    assert "- [ ] User can open login page" in updated
+    assert "  - stg:\n    - status: passed\n    - notes: Run run_123 passed; report:" in updated
+    assert "      - Run old_stg failed; report: /tmp/old-report.md" in updated
+    assert "      - Run run_123 passed; report:" in updated
     assert str(run_path / "qa-report.md") in updated
 
 

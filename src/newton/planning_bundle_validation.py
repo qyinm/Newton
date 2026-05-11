@@ -21,6 +21,13 @@ class PlanningBundleValidationResult:
     tracker_items: int
 
 
+@dataclass(frozen=True)
+class _TrackerItem:
+    text: str
+    environments: frozenset[str]
+    statuses: dict[str, str]
+
+
 REQUIRED_ARTIFACTS = {
     "qa_scope": "qa-scope.md",
     "checklist": "checklist.md",
@@ -39,6 +46,8 @@ BASELINE_RISKS = [
     "policy conflict",
     "regression",
 ]
+TRACKER_ENVS = ("dev", "stg", "prod")
+TRACKER_STATUSES = {"not run", "passed", "failed", "blocked", "needs retest"}
 
 
 def validate_planning_bundle(bundle_dir: Path) -> PlanningBundleValidationResult:
@@ -64,9 +73,11 @@ def validate_planning_bundle(bundle_dir: Path) -> PlanningBundleValidationResult
         raise PlanningBundleValidationError("manifest missing artifacts")
 
     resolved_artifacts = _validate_artifact_paths(bundle_dir, artifacts)
-    checklist_count = _count_checklist_items(resolved_artifacts["checklist"])
+    checklist_items = _read_checklist_items(resolved_artifacts["checklist"])
+    checklist_count = len(checklist_items)
     test_case_count = _count_test_cases(resolved_artifacts["test_cases"])
-    tracker_count = _count_tracker_items(resolved_artifacts["qa_run_tracker"])
+    tracker_items = _read_tracker_items(resolved_artifacts["qa_run_tracker"])
+    tracker_count = len(tracker_items)
 
     if checklist_count != test_case_count:
         raise PlanningBundleValidationError(
@@ -76,6 +87,7 @@ def validate_planning_bundle(bundle_dir: Path) -> PlanningBundleValidationResult
         raise PlanningBundleValidationError(
             f"checklist/tracker count mismatch: {checklist_count} != {tracker_count}"
         )
+    _validate_tracker_items(checklist_items, tracker_items)
 
     _validate_baseline_risks(resolved_artifacts["risk_map"])
 
@@ -108,19 +120,92 @@ def _validate_artifact_paths(bundle_dir: Path, artifacts: dict[str, object]) -> 
 
 
 def _count_checklist_items(checklist_path: Path) -> int:
-    return _count_markdown_checkbox_items(checklist_path.read_text())
+    return len(_read_checklist_items(checklist_path))
 
 
 def _count_tracker_items(tracker_path: Path) -> int:
-    return _count_markdown_checkbox_items(tracker_path.read_text())
+    return len(_read_tracker_items(tracker_path))
 
 
-def _count_markdown_checkbox_items(markdown: str) -> int:
-    return sum(
-        1
-        for line in markdown.splitlines()
-        if line.strip().startswith(("- [ ] ", "- [x] ", "- [X] "))
-    )
+def _read_checklist_items(checklist_path: Path) -> list[str]:
+    return [
+        _checkbox_item_text(line.strip())
+        for line in checklist_path.read_text().splitlines()
+        if _is_checkbox(line)
+    ]
+
+
+def _read_tracker_items(tracker_path: Path) -> list[_TrackerItem]:
+    lines = tracker_path.read_text().splitlines()
+    item_starts = [index for index, line in enumerate(lines) if _is_checkbox(line)]
+    items: list[_TrackerItem] = []
+    for item_index, start in enumerate(item_starts):
+        end = item_starts[item_index + 1] if item_index + 1 < len(item_starts) else len(lines)
+        items.append(_parse_tracker_item(lines[start], lines[start + 1 : end]))
+    return items
+
+
+def _parse_tracker_item(item_line: str, detail_lines: list[str]) -> _TrackerItem:
+    text = _checkbox_item_text(item_line.strip())
+    environments: set[str] = set()
+    statuses: dict[str, str] = {}
+    current_env: str | None = None
+
+    for line in detail_lines:
+        stripped = line.strip()
+        env = _tracker_environment_heading(stripped)
+        if env is not None:
+            environments.add(env)
+            current_env = env
+            continue
+        if current_env is None or not stripped.startswith("- status:"):
+            continue
+        status = stripped.removeprefix("- status:").strip().lower()
+        statuses[current_env] = status
+
+    return _TrackerItem(text=text, environments=frozenset(environments), statuses=statuses)
+
+
+def _validate_tracker_items(checklist_items: list[str], tracker_items: list[_TrackerItem]) -> None:
+    for index, (checklist_item, tracker_item) in enumerate(
+        zip(checklist_items, tracker_items, strict=True),
+        start=1,
+    ):
+        if tracker_item.text != checklist_item:
+            raise PlanningBundleValidationError(
+                "tracker/checklist item mismatch at item "
+                f"{index}: {tracker_item.text} != {checklist_item}"
+            )
+        for env in TRACKER_ENVS:
+            if env not in tracker_item.environments:
+                raise PlanningBundleValidationError(f"tracker item {index} missing environment: {env}")
+            status = tracker_item.statuses.get(env)
+            if status is None:
+                raise PlanningBundleValidationError(
+                    f"tracker item {index} missing status for environment: {env}"
+                )
+            if status not in TRACKER_STATUSES:
+                raise PlanningBundleValidationError(
+                    f"tracker item {index} invalid status for environment {env}: {status}"
+                )
+
+
+def _is_checkbox(line: str) -> bool:
+    return line.strip().startswith(("- [ ] ", "- [x] ", "- [X] "))
+
+
+def _checkbox_item_text(stripped_line: str) -> str:
+    for prefix in ("- [ ] ", "- [x] ", "- [X] "):
+        if stripped_line.startswith(prefix):
+            return stripped_line.removeprefix(prefix).strip()
+    raise PlanningBundleValidationError("unsupported tracker checklist format")
+
+
+def _tracker_environment_heading(stripped_line: str) -> str | None:
+    for env in TRACKER_ENVS:
+        if stripped_line == f"- {env}:":
+            return env
+    return None
 
 
 def _count_test_cases(test_cases_path: Path) -> int:

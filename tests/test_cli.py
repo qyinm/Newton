@@ -736,10 +736,10 @@ def test_qa_tracker_update_updates_generated_tracker_item(tmp_path: Path):
     assert update.exit_code == 0
     assert f"updated_tracker: {tracker_path}" in update.stdout
     tracker = tracker_path.read_text()
-    assert "- [x] User sees Dashboard" in tracker
-    assert "  - env: stg" in tracker
-    assert "  - status: failed" in tracker
-    assert "  - notes: Dashboard never appears after submit" in tracker
+    assert "- [ ] User sees Dashboard" in tracker
+    assert "  - stg:\n    - status: failed\n    - notes: Dashboard never appears after submit" in tracker
+    assert "  - dev:\n    - status: not run" in tracker
+    assert "  - prod:\n    - status: not run" in tracker
 
     draft = CliRunner().invoke(app, ["qa", "bug-draft", str(tracker_path)])
 
@@ -798,7 +798,8 @@ def test_qa_tracker_update_from_run_links_run_result_to_tracker(tmp_path: Path):
     assert f"updated_tracker: {tracker_path}" in update.stdout
     tracker = tracker_path.read_text()
     assert "- stg: passed" in tracker
-    assert "- [x] User can open login page" in tracker
+    assert "- [ ] User can open login page" in tracker
+    assert "  - stg:\n    - status: passed\n    - notes: Run" in tracker
     assert f"report: {run_path / 'qa-report.md'}" in tracker
 
 
