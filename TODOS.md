@@ -520,9 +520,9 @@ uv run --extra dev --extra web pytest tests/test_agent_planner.py tests/test_age
 
 ### 26. iOS execution track
 
-- [ ] Keep Maestro compile support as experimental until a real device/simulator run is implemented.
-- [ ] Add an explicit `experimental` label in docs and output.
-- [ ] Later, add simulator lifecycle, app install, Maestro execution, logs, screenshots, and artifact normalization.
+- [x] Keep Maestro compile support as experimental until a real device/simulator run is implemented.
+- [x] Add an explicit `experimental` label in docs and output.
+- [x] Later, add simulator lifecycle, app install, Maestro execution, logs, screenshots, and artifact normalization.
 
 Acceptance:
 
@@ -530,9 +530,9 @@ Acceptance:
 
 ### 27. Tool integration track
 
-- [ ] Add importers only after file-first planning quality is strong.
-- [ ] Start with export/paste workflows for Figma, Notion, Jira, Linear, and GitHub PR diffs.
-- [ ] Keep every importer writing plain files under `qa/inputs/`.
+- [x] Add importers only after file-first planning quality is strong.
+- [x] Start with export/paste workflows for Figma, Notion, Jira, Linear, and GitHub PR diffs.
+- [x] Keep every importer writing plain files under `qa/inputs/`.
 
 Acceptance:
 
@@ -540,8 +540,8 @@ Acceptance:
 
 ### 28. Hosted runner track
 
-- [ ] Design hosted or remote execution only after local web execution is release-grade.
-- [ ] Define artifact upload, trace retention, secrets handling, and PR comment behavior before implementation.
+- [x] Design hosted or remote execution only after local web execution is release-grade.
+- [x] Define artifact upload, trace retention, secrets handling, and PR comment behavior before implementation.
 
 Acceptance:
 
@@ -549,9 +549,9 @@ Acceptance:
 
 ### 29. Selector self-healing track
 
-- [ ] Add selector diagnostics before automatic repair.
-- [ ] Require human-reviewed scenario updates.
-- [ ] Store suggested selector replacements as reviewable artifacts.
+- [x] Add selector diagnostics before automatic repair.
+- [x] Require human-reviewed scenario updates.
+- [x] Store suggested selector replacements as reviewable artifacts.
 
 Acceptance:
 
