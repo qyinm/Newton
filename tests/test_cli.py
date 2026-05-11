@@ -1235,3 +1235,46 @@ def test_qa_handoff_writes_dogfood_agent_packet(tmp_path: Path):
     assert "report_path: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md" in packet
     assert "tracker_path: qa/dogfood/login/plan/qa-run-tracker.md" in packet
     assert "bug_draft_path: qa/dogfood/login/bug-ticket-draft.md" in packet
+
+
+def test_qa_handoff_does_not_render_run_errors_or_evidence_descriptions(tmp_path: Path):
+    run_dir = tmp_path / "runs" / "run_123"
+    run_dir.mkdir(parents=True)
+    (run_dir / "qa-report.md").write_text("# report")
+    (run_dir / "result.json").write_text(
+        json.dumps(
+            {
+                "contract_version": "v0.1",
+                "run_id": "run_123",
+                "scenario_id": "secure-login",
+                "target_id": "web",
+                "platform": "web",
+                "status": "failed",
+                "steps": [
+                    {
+                        "id": "password",
+                        "action": "fill",
+                        "status": "failed",
+                        "error": "browser error included super-secret-password",
+                        "evidence": [
+                            {
+                                "kind": "screenshot",
+                                "path": "failure.png",
+                                "description": "after super-secret-password",
+                            }
+                        ],
+                    }
+                ],
+                "evidence": [],
+            }
+        )
+    )
+
+    result = CliRunner().invoke(app, ["qa", "handoff", str(tmp_path), "--run", str(run_dir)])
+
+    assert result.exit_code == 0
+    assert "run_id: run_123" in result.stdout
+    assert f"report_path: {run_dir / 'qa-report.md'}" in result.stdout
+    assert f"  - {run_dir / 'failure.png'}" in result.stdout
+    assert "super-secret-password" not in result.stdout
+    assert "browser error included" not in result.stdout

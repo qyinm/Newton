@@ -192,6 +192,61 @@ def test_write_bug_ticket_draft_uses_run_evidence_from_tracker_update(tmp_path: 
     assert f"- `{run_path / 'playwright-trace.zip'}`" in draft
 
 
+def test_write_bug_ticket_draft_from_run_does_not_echo_tracker_notes(tmp_path: Path):
+    tracker_path = tmp_path / "qa-run-tracker.md"
+    run_path = tmp_path / "runs" / "run_123"
+    run_path.mkdir(parents=True)
+    (run_path / "result.json").write_text(
+        """{
+  "contract_version": "v0.1",
+  "run_id": "run_123",
+  "scenario_id": "secure-login",
+  "target_id": "web",
+  "platform": "web",
+  "status": "failed",
+  "steps": [
+    {
+      "id": "password",
+      "action": "fill",
+      "status": "failed",
+      "error": "[secure value redacted]",
+      "evidence": []
+    }
+  ],
+  "evidence": []
+}
+"""
+    )
+    tracker_path.write_text(
+        f"""# QA Run Tracker: Login
+
+## Checklist Status
+
+- [ ] User can securely log in
+  - dev:
+    - status: failed
+    - notes: Run run_123 failed; report: {run_path / "qa-report.md"}; result: {run_path / "result.json"}; operator note: typed super-secret-password
+    - runs:
+      - Run run_123 failed; report: {run_path / "qa-report.md"}; result: {run_path / "result.json"}
+  - stg:
+    - status: not run
+    - notes:
+    - runs:
+  - prod:
+    - status: not run
+    - notes:
+    - runs:
+"""
+    )
+
+    output_path = write_bug_ticket_draft(tracker_path)
+
+    draft = output_path.read_text()
+    assert "super-secret-password" not in draft
+    assert "[secure value redacted]" in draft
+    assert "Run-derived draft; see Source References." in draft
+
+
 @pytest.mark.parametrize(
     ("output_format", "heading", "title_label"),
     [

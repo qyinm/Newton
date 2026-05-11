@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -188,10 +188,11 @@ def _build_run_derived_draft(
     reproduction_steps = tuple(_run_reproduction_steps(result)) or (
         f"Execute the failed checklist item: {item.item}",
     )
-    actual_result = _failed_step_error(failed_step) or item.notes or "Unknown failure"
+    actual_result = _failed_step_error(failed_step) or "Unknown failure"
     expected_result = "Scenario should complete all steps successfully."
     source_references = _run_source_references(tracker_path, run_reference, result)
     evidence_paths = _run_evidence_paths(run_reference, result)
+    safe_item = replace(item, notes="Run-derived draft; see Source References.")
     return BugTicketDraft(
         title=title,
         severity="S2 - Major",
@@ -199,7 +200,7 @@ def _build_run_derived_draft(
         environment=item.env,
         failed_step=failed_step_label,
         suspected_owner_area=f"{platform.title()} / {scenario_id}",
-        item=item,
+        item=safe_item,
         reproduction_steps=reproduction_steps,
         expected_result=expected_result,
         actual_result=actual_result,

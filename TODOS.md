@@ -485,9 +485,9 @@ rg -n "Playwright|selector|trace|Codex|Claude|validation" docs README.md
 
 ### 24. Redact sensitive values
 
-- [ ] Ensure `secure: true` input values are not written to `result.json`, `qa-report.md`, traces under Newton control, handoff packets, or bug drafts.
-- [ ] Add explicit docs for what Newton can and cannot redact from third-party Playwright traces.
-- [ ] Add tests for secure step rendering.
+- [x] Ensure `secure: true` input values are not written to `result.json`, `qa-report.md`, traces under Newton control, handoff packets, or bug drafts.
+- [x] Add explicit docs for what Newton can and cannot redact from third-party Playwright traces.
+- [x] Add tests for secure step rendering.
 
 Acceptance:
 

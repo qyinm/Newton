@@ -96,6 +96,18 @@ For passwords, tokens, or other sensitive input, set `secure: true` on the step.
 Generated `result.json` and `qa-report.md` redact secure step values if backend
 errors or evidence descriptions echo them.
 
+Newton redacts only artifacts it owns and renders: normalized `result.json`,
+`qa-report.md`, run-derived handoff packets, and bug drafts that read the
+redacted run result. Handoff packets intentionally list file paths instead of
+raw run errors or evidence descriptions.
+
+Newton cannot guarantee redaction inside third-party Playwright artifacts such
+as `playwright-trace.zip` or browser-managed video files. Those archives may
+contain browser-level input events, DOM snapshots, screenshots, network payloads,
+or storage state captured by Playwright before Newton sees the data. Treat trace
+and video files from secure-input runs as sensitive evidence and avoid sharing
+them outside the intended QA/debugging boundary.
+
 ## CI release gate
 
 For release gates, call `newton qa run` without `--allow-failure`:

@@ -139,3 +139,51 @@ def test_redact_run_result_removes_secure_step_values_from_reportable_fields():
     assert "super-secret-password" not in redacted.model_dump_json()
     assert "super-secret-password" not in markdown
     assert "[secure value redacted]" in markdown
+
+
+def test_redact_run_result_removes_secure_step_values_from_summary_and_diagnosis():
+    scenario = Scenario.model_validate(
+        {
+            "scenario": {"id": "secure-login", "title": "Secure login"},
+            "targets": [
+                {
+                    "id": "web",
+                    "platform": "web",
+                    "backend": "playwright",
+                    "base_url": "https://example.com",
+                }
+            ],
+            "steps": [
+                {
+                    "id": "password",
+                    "action": "fill",
+                    "secure": True,
+                    "value": "super-secret-password",
+                    "target": {"web": {"label": "Password"}},
+                }
+            ],
+        }
+    )
+    result = RunResult(
+        run_id="run_001",
+        scenario_id="secure-login",
+        target_id="web",
+        platform="web",
+        status="failed",
+        steps=[
+            StepResult(
+                id="password",
+                action="fill",
+                status="failed",
+                error="browser error included super-secret-password",
+            )
+        ],
+    )
+
+    redacted = reporting.redact_run_result(result, scenario)
+    markdown = render_markdown_report(redacted)
+
+    assert redacted.summary is not None
+    assert redacted.summary.first_error == "browser error included [secure value redacted]"
+    assert "super-secret-password" not in markdown
+    assert "**Error:** browser error included [secure value redacted]" in markdown
