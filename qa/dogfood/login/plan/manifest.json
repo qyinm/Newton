@@ -1,4 +1,5 @@
 {
+  "contract_version": "v0.1",
   "plan_id": "login",
   "bundle_dir_name": "plan",
   "input_path": "qa/dogfood/login/inputs/ticket.md",

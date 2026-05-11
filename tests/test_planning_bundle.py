@@ -4,6 +4,7 @@ import csv
 import json
 from pathlib import Path
 
+from newton.models import ARTIFACT_CONTRACT_VERSION
 from newton.planning_bundle import generate_planning_bundle
 
 
@@ -28,6 +29,7 @@ def test_generate_planning_bundle_writes_minimal_prd_artifacts(tmp_path: Path):
 
     manifest = json.loads((bundle_dir / "manifest.json").read_text())
     assert manifest == {
+        "contract_version": ARTIFACT_CONTRACT_VERSION,
         "plan_id": "login",
         "input_path": "tests/fixtures/inputs/login_ticket.md",
         "source_paths": ["tests/fixtures/inputs/login_ticket.md"],

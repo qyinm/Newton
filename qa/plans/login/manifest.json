@@ -1,4 +1,5 @@
 {
+  "contract_version": "v0.1",
   "plan_id": "login",
   "input_path": "qa/inputs/login-ticket.md",
   "source_paths": [

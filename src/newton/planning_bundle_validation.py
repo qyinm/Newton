@@ -5,6 +5,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from newton.models import ArtifactContractVersionError, require_artifact_contract_version
+
 
 class PlanningBundleValidationError(ValueError):
     """Raised when a planning bundle does not satisfy Newton's artifact contract."""
@@ -51,6 +53,11 @@ def validate_planning_bundle(bundle_dir: Path) -> PlanningBundleValidationResult
         manifest = json.loads(manifest_path.read_text())
     except json.JSONDecodeError as exc:
         raise PlanningBundleValidationError(f"invalid manifest.json: {exc.msg}") from exc
+
+    try:
+        require_artifact_contract_version(manifest, artifact_name="manifest.json")
+    except ArtifactContractVersionError as exc:
+        raise PlanningBundleValidationError(str(exc)) from exc
 
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, dict):

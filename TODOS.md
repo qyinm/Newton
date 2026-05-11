@@ -51,10 +51,10 @@ rg -n "cross-platform|iOS|mobile|web-first|hosted|self-healing" README.md PRD.md
 
 ### 2. Define the v0.1 artifact contract as a versioned contract
 
-- [ ] Add `contract_version` to planning bundle `manifest.json`.
-- [ ] Add `contract_version` to `result.json`.
-- [ ] Document v0.1 required fields for planning bundles and run results in `docs/agent-runtime-usage.md`.
-- [ ] Add tests that old artifacts without `contract_version` either validate with an explicit compatibility path or fail with a clear migration message.
+- [x] Add `contract_version` to planning bundle `manifest.json`.
+- [x] Add `contract_version` to `result.json`.
+- [x] Document v0.1 required fields for planning bundles and run results in `docs/agent-runtime-usage.md`.
+- [x] Add tests that old artifacts without `contract_version` either validate with an explicit compatibility path or fail with a clear migration message.
 
 Acceptance:
 

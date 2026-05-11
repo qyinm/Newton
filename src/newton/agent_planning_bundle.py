@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Sequence
 
 from newton.planning_bundle import _extract_title, _slugify
+from newton.models import ARTIFACT_CONTRACT_VERSION
 from newton.planning_bundle_validation import PlanningBundleValidationError, validate_planning_bundle
 
 AgentRun = Callable[..., subprocess.CompletedProcess[str]]
@@ -340,6 +341,7 @@ def _write_bundle_artifacts(
     (bundle_dir / "manifest.json").write_text(
         json.dumps(
             {
+                "contract_version": ARTIFACT_CONTRACT_VERSION,
                 "plan_id": plan_id,
                 "input_path": str(input_path),
                 "source_paths": [str(source_path) for source_path in source_paths],

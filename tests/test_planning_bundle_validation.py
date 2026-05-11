@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from newton.models import ARTIFACT_CONTRACT_VERSION
 from newton.planning_bundle import generate_planning_bundle
 from newton.planning_bundle_validation import PlanningBundleValidationError, validate_planning_bundle
 
@@ -22,6 +23,8 @@ def test_validate_planning_bundle_accepts_generated_bundle(tmp_path: Path):
     assert result.checklist_items == 5
     assert result.test_cases == 5
     assert result.tracker_items == 5
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["contract_version"] == ARTIFACT_CONTRACT_VERSION
 
 
 def test_validate_planning_bundle_rejects_missing_artifact(tmp_path: Path):
@@ -96,6 +99,23 @@ def test_validate_planning_bundle_rejects_manifest_path_that_does_not_match_arti
         validate_planning_bundle(bundle_dir)
 
 
+def test_validate_planning_bundle_rejects_legacy_manifest_without_contract_version(tmp_path: Path):
+    bundle_dir = generate_planning_bundle(
+        Path("tests/fixtures/inputs/login_ticket.md"),
+        out_dir=tmp_path,
+    )
+    manifest_path = bundle_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest.pop("contract_version", None)
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+
+    with pytest.raises(
+        PlanningBundleValidationError,
+        match="manifest.json missing contract_version; regenerate this artifact with Newton v0.1",
+    ):
+        validate_planning_bundle(bundle_dir)
+
+
 def test_checked_in_demo_planning_bundle_is_valid_and_linked_from_docs():
     bundle_dir = Path("qa/plans/login")
 
@@ -107,6 +127,7 @@ def test_checked_in_demo_planning_bundle_is_valid_and_linked_from_docs():
     assert result.test_cases == 8
     assert result.tracker_items == 8
     manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["contract_version"] == ARTIFACT_CONTRACT_VERSION
     assert manifest["input_path"] == "qa/inputs/login-ticket.md"
     assert manifest["source_paths"] == ["qa/inputs/login-ticket.md", "qa/inputs/login-policy.md"]
     assert Path("qa/inputs/login-ticket.md").exists()

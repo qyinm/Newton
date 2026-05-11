@@ -6,6 +6,8 @@ import json
 import re
 from pathlib import Path
 
+from newton.models import ARTIFACT_CONTRACT_VERSION
+
 
 class PlanningBundleError(ValueError):
     """Raised when markdown context cannot produce a planning bundle."""
@@ -46,6 +48,7 @@ def generate_planning_bundle(
     automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
     qa_run_tracker_path.write_text(_render_run_tracker(title, checklist_items))
     manifest: dict[str, object] = {
+        "contract_version": ARTIFACT_CONTRACT_VERSION,
         "plan_id": plan_id,
         "input_path": str(input_path),
         "source_paths": [str(source_path) for source_path in all_source_paths],

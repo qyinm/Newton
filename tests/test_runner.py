@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from newton.models import ARTIFACT_CONTRACT_VERSION, RunResult
 from newton.runner import run_scenario
 from newton.scenario_loader import load_scenario
 
@@ -26,8 +27,24 @@ def test_run_scenario_writes_result_and_report(tmp_path: Path):
 
     assert result_path.exists()
     assert report_path.exists()
-    assert json.loads(result_path.read_text())["scenario_id"] == "web-login-smoke"
+    result_payload = json.loads(result_path.read_text())
+    assert result_payload["contract_version"] == ARTIFACT_CONTRACT_VERSION
+    assert result_payload["scenario_id"] == "web-login-smoke"
     assert "# QA Report: web-login-smoke" in report_path.read_text()
+
+
+def test_run_result_artifact_validation_rejects_legacy_payload_without_contract_version():
+    legacy_payload = {
+        "run_id": "run_legacy",
+        "scenario_id": "web-login-smoke",
+        "target_id": "web",
+        "platform": "web",
+        "status": "passed",
+        "steps": [],
+    }
+
+    with pytest.raises(ValueError, match="result.json missing contract_version; regenerate this artifact with Newton v0.1"):
+        RunResult.validate_artifact_payload(legacy_payload)
 
 
 def test_run_scenario_appends_local_run_index_entry(tmp_path: Path):

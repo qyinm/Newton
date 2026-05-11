@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
+
+ARTIFACT_CONTRACT_VERSION = "v0.1"
 
 Platform = Literal["web", "ios"]
 Backend = Literal["playwright", "maestro", "xcuitest", "appium", "dry-run"]
@@ -10,6 +12,24 @@ Priority = Literal["P0", "P1", "P2", "P3"]
 ScreenshotPolicy = Literal["never", "on_failure", "after_each_step"]
 StepStatus = Literal["passed", "failed", "skipped"]
 RunStatus = Literal["passed", "failed", "skipped"]
+
+
+class ArtifactContractVersionError(ValueError):
+    """Raised when a Newton artifact is missing or using an unsupported contract version."""
+
+
+def require_artifact_contract_version(payload: Mapping[str, Any], *, artifact_name: str) -> None:
+    version = payload.get("contract_version")
+    if not isinstance(version, str) or not version:
+        raise ArtifactContractVersionError(
+            f"{artifact_name} missing contract_version; regenerate this artifact with Newton "
+            f"{ARTIFACT_CONTRACT_VERSION}"
+        )
+    if version != ARTIFACT_CONTRACT_VERSION:
+        raise ArtifactContractVersionError(
+            f"{artifact_name} uses unsupported contract_version {version!r}; expected "
+            f"{ARTIFACT_CONTRACT_VERSION!r}"
+        )
 
 
 class ScenarioMeta(BaseModel):
@@ -118,6 +138,7 @@ class StepResult(BaseModel):
 
 
 class RunResult(BaseModel):
+    contract_version: Literal["v0.1"] = ARTIFACT_CONTRACT_VERSION
     run_id: str
     scenario_id: str
     target_id: str
@@ -133,3 +154,8 @@ class RunResult(BaseModel):
 
     def failed_step_ids(self) -> list[str]:
         return [step.id for step in self.steps if step.status == "failed"]
+
+    @classmethod
+    def validate_artifact_payload(cls, payload: Mapping[str, Any]) -> "RunResult":
+        require_artifact_contract_version(payload, artifact_name="result.json")
+        return cls.model_validate(payload)

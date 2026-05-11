@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 
 from newton.agent_planning_bundle import generate_planning_bundle_with_agent
+from newton.models import ARTIFACT_CONTRACT_VERSION
 
 
 def _valid_payload() -> dict[str, object]:
@@ -96,6 +97,7 @@ def test_codex_agent_uses_output_last_message_file_when_stdout_is_noisy(tmp_path
     assert bundle_dir == tmp_path / "login"
     assert seen_argv[:3] == ["codex", "exec", "--sandbox"]
     assert "--output-last-message" in seen_argv
+    assert json.loads((bundle_dir / "manifest.json").read_text())["contract_version"] == ARTIFACT_CONTRACT_VERSION
     assert json.loads((bundle_dir / "bundle-generation.codex.json").read_text())["plan_id"] == "login"
     raw_output = (bundle_dir / "bundle-generation.codex.raw.txt").read_text()
     assert "OpenAI Codex transcript" in raw_output

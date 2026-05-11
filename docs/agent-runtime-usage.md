@@ -56,3 +56,41 @@ newton qa report <run-dir>
 - `qa-report.md` is the human-readable summary.
 - Web runs can override scenario target URLs with `--base-url` for local fixtures, preview deployments, or staging environments.
 - Failure evidence is stored in the run directory and referenced from both output files.
+
+## v0.1 Artifact Fields
+
+Every v0.1 planning bundle and run result must include `"contract_version": "v0.1"`. Agents and CI readers should reject artifacts that omit `contract_version`; regenerate those artifacts with a v0.1 Newton build before treating them as release-contract outputs.
+
+Planning bundle directories must contain:
+
+- `manifest.json`
+- `qa-scope.md`
+- `checklist.md`
+- `test-cases.csv`
+- `risk-map.md`
+- `qa-estimate.md`
+- `automation-candidates.md`
+- `qa-run-tracker.md`
+
+`manifest.json` requires:
+
+- `contract_version`: `"v0.1"`
+- `plan_id`: non-empty plan identifier
+- `input_path`: primary markdown context path
+- `source_paths`: ordered source path list including the primary input
+- `artifacts`: object with paths for `qa_scope`, `checklist`, `test_cases`, `risk_map`, `qa_estimate`, `automation_candidates`, and `qa_run_tracker`
+
+Agent-generated planning bundles may also include `agent` and `generation` metadata. Deterministic validation still requires the same v0.1 `manifest.json` fields and artifacts.
+
+Run `result.json` requires:
+
+- `contract_version`: `"v0.1"`
+- `run_id`: run directory identifier
+- `scenario_id`: scenario id from the accepted scenario YAML
+- `target_id`: executed target id
+- `platform`: `web` or `ios`
+- `status`: `passed`, `failed`, or `skipped`
+- `steps`: ordered step result objects with `id`, `action`, `status`, optional `error`, optional `duration_ms`, and step-level `evidence`
+- `evidence`: run-level evidence artifact list
+
+Linked runs may also include `planning` metadata with the provenance path, agent, input path, accepted scenario path, and validation status.

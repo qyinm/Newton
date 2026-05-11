@@ -1,4 +1,5 @@
 {
+  "contract_version": "v0.1",
   "run_id": "run_f268ce6c9e79",
   "scenario_id": "login-smoke",
   "target_id": "web",
