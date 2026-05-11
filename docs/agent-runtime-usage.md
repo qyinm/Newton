@@ -38,13 +38,15 @@ newton qa report <run-dir>
 - Agents should call the CLI rather than invent ad-hoc workflows.
 - `qa plan-bundle` turns one or more markdown context files into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, PRD baseline risk map, QA estimate, automation candidates, QA run tracker, and manifest.
 - `qa bundle-validate` deterministically checks a planning bundle's required files, manifest paths, item counts, and baseline risks before agent/CI handoff.
+- Template mode is deterministic local code. It does not call Codex, Claude, or any other external agent.
 - `qa bundle-review` optionally asks `template`, Codex, or Claude for advisory QA quality feedback and writes validated review JSON/Markdown artifacts. Default external review commands are constrained to read-only/no-tool mode; custom agent commands are an explicit escape hatch.
 - `qa tracker-update` updates one generated QA run tracker checklist item plus the selected environment status.
 - `qa tracker-update-from-run` maps a completed `qa run` result onto one tracker item and records the run report path in notes.
 - `qa bug-draft` reads the first failed checklist item from a QA run tracker and writes `bug-ticket-draft.md`.
 - `qa plan` turns markdown context into a validated scenario YAML draft.
 - In agent mode, Codex or Claude Code proposes YAML; Newton accepts it only after schema validation.
-- `qa plan` writes `<input-stem>.<agent>.plan.json` as planning provenance, including selected agent, input, prompt/raw output paths, accepted scenario path, and validation status.
+- For Codex/Claude generation and review, Newton saves the prompt and raw output next to the accepted artifact for audit. Scenario planning writes `<input-stem>.<agent>.prompt.txt` and `<input-stem>.<agent>.raw.txt`; planning bundles write `bundle-generation.<agent>.prompt.txt` and `bundle-generation.<agent>.raw.txt`; bundle reviews write `bundle-review.<agent>.prompt.txt` and `bundle-review.<agent>.raw.txt`.
+- `qa plan` writes `<input-stem>.<agent>.plan.json` as planning provenance, including selected agent, input, prompt/raw output paths, accepted scenario path, validation status, and whether the agent command came from Newton's default or a `--agent-command` override.
 - Planning provenance is audit/replay metadata, not an execution contract.
 - `qa run --plan-provenance <plan.json>` links an accepted planning artifact to execution output without re-running the agent.
 - Linked runs copy only minimal planning metadata into `result.json` and `qa-report.md`: provenance path, agent, source input, accepted scenario path, and validation status.
@@ -81,6 +83,8 @@ Planning bundle directories must contain:
 - `artifacts`: object with paths for `qa_scope`, `checklist`, `test_cases`, `risk_map`, `qa_estimate`, `automation_candidates`, and `qa_run_tracker`
 
 Agent-generated planning bundles may also include `agent` and `generation` metadata. Deterministic validation still requires the same v0.1 `manifest.json` fields and artifacts.
+
+When `--agent-command` is used, Newton prints a warning because the custom command replaces Newton's safe Codex/Claude defaults. The command is still allowed for test doubles, local adapters, and controlled custom runtimes; provenance records the override argv and the default argv that was bypassed.
 
 Run `result.json` requires:
 

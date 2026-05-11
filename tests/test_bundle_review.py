@@ -99,6 +99,11 @@ def test_review_planning_bundle_codex_uses_agent_json_contract(tmp_path: Path):
     payload = json.loads((bundle_dir / "bundle-review.codex.json").read_text())
     assert payload["agent"] == "codex"
     assert payload["bundle_path"] == str(bundle_dir)
+    assert payload["agent_command"] == {
+        "source": "override",
+        "argv": ["fake-codex"],
+        "default_argv": ["codex", "exec", "--sandbox", "read-only", "-"],
+    }
     assert payload["category_scores"]["estimate_clarity"] == 60
     assert payload["findings"][0]["suggestion"] == "Add a locked account test case."
     markdown = (bundle_dir / "bundle-review.codex.md").read_text()
@@ -160,6 +165,38 @@ def test_review_planning_bundle_default_claude_command_disables_tools(tmp_path: 
         )
 
     review_planning_bundle(bundle_dir, agent="claude", run=fake_run)
+
+
+def test_review_planning_bundle_default_command_provenance(tmp_path: Path):
+    bundle_dir = generate_planning_bundle(Path("tests/fixtures/inputs/login_ticket.md"), out_dir=tmp_path)
+
+    def fake_run(argv, *, input, text, capture_output, check):
+        return subprocess.CompletedProcess(
+            argv,
+            0,
+            stdout=json.dumps(
+                {
+                    "score": 80,
+                    "verdict": "advisory_pass",
+                    "category_scores": {
+                        "coverage": 80,
+                        "source_grounding": 80,
+                        "estimate_clarity": 80,
+                        "risk_usefulness": 80,
+                        "automation_suitability": 80,
+                    },
+                    "findings": [],
+                }
+            ),
+            stderr="",
+        )
+
+    result = review_planning_bundle(bundle_dir, agent="codex", run=fake_run)
+    payload = json.loads(result.review_json_path.read_text())
+    assert payload["agent_command"] == {
+        "source": "default",
+        "argv": ["codex", "exec", "--sandbox", "read-only", "-"],
+    }
 
 
 def test_review_planning_bundle_requires_complete_category_scores(tmp_path: Path):

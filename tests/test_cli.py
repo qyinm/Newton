@@ -672,6 +672,7 @@ def test_qa_bundle_review_agent_command_writes_review_artifacts(tmp_path: Path):
     )
 
     assert review.exit_code == 0
+    assert "--agent-command overrides Newton's safe default for codex" in review.stderr
     assert f"review_json: {bundle_dir / 'bundle-review.codex.json'}" in review.stdout
     assert f"review_markdown: {bundle_dir / 'bundle-review.codex.md'}" in review.stdout
     assert "score: 66" in review.stdout
@@ -969,6 +970,7 @@ def test_qa_plan_bundle_agent_codex_generates_valid_bundle_with_provenance(tmp_p
     )
 
     assert result.exit_code == 0
+    assert "--agent-command overrides Newton's safe default for codex" in result.stderr
     bundle_dir = tmp_path / "login"
     assert f"bundle: {bundle_dir}" in result.stdout
     assert (bundle_dir / "bundle-generation.codex.prompt.txt").exists()
@@ -1183,6 +1185,7 @@ def test_qa_plan_agent_codex_uses_shared_agent_contract(tmp_path: Path):
     )
 
     assert result.exit_code == 0
+    assert "--agent-command overrides Newton's safe default for codex" in result.stderr
     assert "planned:" in result.stdout
     assert "valid: cli-agent-login-smoke" in result.stdout
     assert (tmp_path / "cli-agent-login-smoke.generated.yaml").exists()

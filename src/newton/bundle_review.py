@@ -79,6 +79,7 @@ def review_planning_bundle(
     raw_output_path = bundle_dir / f"bundle-review.{normalized_agent}.raw.txt"
     prompt_path.write_text(prompt)
     argv, prompt_via_stdin = _agent_command(normalized_agent, command)
+    agent_command = _agent_command_provenance(normalized_agent, argv, command)
 
     try:
         completed = run(
@@ -112,6 +113,7 @@ def review_planning_bundle(
         payload=payload,
         prompt_path=prompt_path,
         raw_output_path=raw_output_path,
+        agent_command=agent_command,
         gate=gate,
         gate_threshold=gate_threshold,
     )
@@ -188,10 +190,13 @@ def _write_review_artifacts(
     payload: dict[str, object],
     prompt_path: Path | None = None,
     raw_output_path: Path | None = None,
+    agent_command: dict[str, object] | None = None,
     gate: bool = False,
     gate_threshold: int = DEFAULT_GATE_THRESHOLD,
 ) -> BundleReviewResult:
     normalized_payload = _validate_agent_review_payload(payload, agent=agent, bundle_dir=bundle_dir)
+    if agent_command is not None:
+        normalized_payload["agent_command"] = agent_command
     gate_payload = _gate_payload(score=int(normalized_payload["score"]), gate=gate, gate_threshold=gate_threshold)
     normalized_payload["gate"] = gate_payload
     json_path = bundle_dir / f"bundle-review.{agent}.json"
@@ -528,6 +533,16 @@ def _agent_command(agent: str, command: Sequence[str] | str | None) -> tuple[lis
     if agent == "claude":
         return ["claude", "-p", "--tools", ""], True
     raise BundleReviewError(f"unsupported bundle review agent: {agent}")
+
+
+def _agent_command_provenance(agent: str, argv: list[str], command: Sequence[str] | str | None) -> dict[str, object]:
+    if command is None:
+        return {"source": "default", "argv": argv}
+    return {
+        "source": "override",
+        "argv": argv,
+        "default_argv": _agent_command(agent, None)[0],
+    }
 
 
 def _extract_json(output: str) -> object:

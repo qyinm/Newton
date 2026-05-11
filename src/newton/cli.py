@@ -75,6 +75,7 @@ def qa_plan(
                 validation_error=None,
             )
         else:
+            _warn_agent_command_override(agent=agent, agent_command=agent_command)
             output_path = plan_scenario_with_agent(
                 path,
                 agent=agent,
@@ -121,6 +122,7 @@ def qa_plan_bundle(
         else:
             if bundle_dir_name is not None:
                 raise AgentPlanningBundleError("--bundle-dir-name is only supported with --agent template")
+            _warn_agent_command_override(agent=agent, agent_command=agent_command)
             bundle_dir = generate_planning_bundle_with_agent(
                 path,
                 out_dir=out,
@@ -177,6 +179,7 @@ def qa_bundle_review(
 ) -> None:
     """Write an advisory QA planning bundle review."""
     try:
+        _warn_agent_command_override(agent=agent, agent_command=agent_command)
         result = review_planning_bundle(
             bundle_dir,
             agent=agent,
@@ -196,6 +199,20 @@ def qa_bundle_review(
         typer.echo(f"gate: {'passed' if result.gate_passed else 'failed'}")
         if not result.gate_passed:
             raise typer.Exit(code=1)
+
+
+def _warn_agent_command_override(*, agent: str, agent_command: str | None) -> None:
+    normalized_agent = agent.strip().lower()
+    if agent_command is None or normalized_agent not in {"codex", "claude"}:
+        return
+    typer.secho(
+        (
+            f"warning: --agent-command overrides Newton's safe default for {normalized_agent}; "
+            "prompts and raw outputs are saved for audit."
+        ),
+        fg=typer.colors.YELLOW,
+        err=True,
+    )
 
 
 @qa_doctor_app.command("web")

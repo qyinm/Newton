@@ -85,6 +85,11 @@ def test_agent_planner_accepts_valid_codex_yaml_from_shared_contract(tmp_path: P
         "accepted_scenario_path": str(output),
         "validation_status": "accepted",
         "validation_error": None,
+        "agent_command": {
+            "source": "override",
+            "argv": ["codex", "exec", "-"],
+            "default_argv": ["codex", "exec", "-"],
+        },
     }
 
 

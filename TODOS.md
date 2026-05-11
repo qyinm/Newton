@@ -501,10 +501,10 @@ uv run --extra dev --extra web pytest tests/test_reporting.py tests/test_web_pla
 
 ### 25. Make external agent execution visibly bounded
 
-- [ ] Document that template mode is deterministic and does not call external agents.
-- [ ] Keep Codex/Claude generation prompts and raw outputs saved for audit.
-- [ ] Add warnings when `--agent-command` overrides safe defaults.
-- [ ] Add tests for command override provenance.
+- [x] Document that template mode is deterministic and does not call external agents.
+- [x] Keep Codex/Claude generation prompts and raw outputs saved for audit.
+- [x] Add warnings when `--agent-command` overrides safe defaults.
+- [x] Add tests for command override provenance.
 
 Acceptance:
 

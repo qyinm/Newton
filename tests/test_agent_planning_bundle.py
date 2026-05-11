@@ -112,7 +112,12 @@ def test_codex_agent_uses_output_last_message_file_when_stdout_is_noisy(tmp_path
     assert bundle_dir == tmp_path / "login"
     assert seen_argv[:3] == ["codex", "exec", "--sandbox"]
     assert "--output-last-message" in seen_argv
-    assert json.loads((bundle_dir / "manifest.json").read_text())["contract_version"] == ARTIFACT_CONTRACT_VERSION
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["contract_version"] == ARTIFACT_CONTRACT_VERSION
+    assert manifest["generation"]["agent_command"] == {
+        "source": "default",
+        "argv": seen_argv,
+    }
     assert json.loads((bundle_dir / "bundle-generation.codex.json").read_text())["plan_id"] == "login"
     raw_output = (bundle_dir / "bundle-generation.codex.raw.txt").read_text()
     assert "OpenAI Codex transcript" in raw_output
@@ -140,3 +145,23 @@ def test_agent_planning_bundle_requires_complete_estimate_factor_schema(tmp_path
             command=["fake-agent"],
             run=fake_run,
         )
+
+
+def test_agent_planning_bundle_records_command_override_provenance(tmp_path: Path):
+    def fake_run(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout=json.dumps(_valid_payload()), stderr="")
+
+    bundle_dir = generate_planning_bundle_with_agent(
+        Path("qa/inputs/login-ticket.md"),
+        out_dir=tmp_path,
+        agent="claude",
+        command="custom-agent --json",
+        run=fake_run,
+    )
+
+    manifest = json.loads((bundle_dir / "manifest.json").read_text())
+    assert manifest["generation"]["agent_command"] == {
+        "source": "override",
+        "argv": ["custom-agent", "--json"],
+        "default_argv": ["claude", "-p", "--tools", ""],
+    }

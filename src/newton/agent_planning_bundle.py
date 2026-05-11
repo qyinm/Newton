@@ -56,6 +56,7 @@ def generate_planning_bundle_with_agent(
         else None
     )
     argv, prompt_via_stdin = _agent_command(normalized_agent, command, codex_last_message_path)
+    agent_command = _agent_command_provenance(normalized_agent, argv, command, codex_last_message_path)
     try:
         completed = run(
             argv,
@@ -99,6 +100,7 @@ def generate_planning_bundle_with_agent(
         prompt_path=prompt_path,
         raw_output_path=raw_output_path,
         accepted_json_path=accepted_json_path,
+        agent_command=agent_command,
         payload=payload,
     )
     accepted_json_path.write_text(json.dumps(payload, indent=2) + "\n")
@@ -193,6 +195,21 @@ def _agent_command(
     if agent == "claude":
         return ["claude", "-p", "--tools", ""], True
     raise AgentPlanningBundleError(f"unsupported planning bundle agent: {agent}")
+
+
+def _agent_command_provenance(
+    agent: str,
+    argv: list[str],
+    command: Sequence[str] | str | None,
+    codex_last_message_path: Path | None = None,
+) -> dict[str, object]:
+    if command is None:
+        return {"source": "default", "argv": argv}
+    return {
+        "source": "override",
+        "argv": argv,
+        "default_argv": _agent_command(agent, None, codex_last_message_path)[0],
+    }
 
 
 def _extract_json(output: str) -> object:
@@ -324,6 +341,7 @@ def _write_bundle_artifacts(
     prompt_path: Path,
     raw_output_path: Path,
     accepted_json_path: Path,
+    agent_command: dict[str, object],
     payload: dict[str, object],
 ) -> None:
     title = str(payload["title"])
@@ -368,6 +386,7 @@ def _write_bundle_artifacts(
                     "raw_output_path": str(raw_output_path),
                     "accepted_json_path": str(accepted_json_path),
                     "validation_status": "accepted",
+                    "agent_command": agent_command,
                 },
                 "artifacts": {key: str(path) for key, path in paths.items()},
             },
