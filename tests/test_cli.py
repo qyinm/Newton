@@ -66,6 +66,65 @@ def test_qa_validate_accepts_valid_scenario():
     assert "valid: web-login-smoke" in result.stdout
 
 
+def test_qa_validate_rejects_invalid_web_action_before_run(tmp_path: Path):
+    scenario_path = tmp_path / "invalid-action.yaml"
+    scenario_path.write_text(
+        """scenario:
+  id: invalid-action
+  title: Invalid action
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: https://staging.example.com
+steps:
+  - id: hover-menu
+    action: hover
+    target:
+      web:
+        css: "#menu"
+"""
+    )
+
+    result = CliRunner().invoke(app, ["qa", "validate", str(scenario_path)])
+
+    combined_output = result.stdout + result.stderr
+    assert result.exit_code != 0
+    assert "hover-menu" in combined_output
+    assert "hover" in combined_output
+    assert "{'css': '#menu'}" in combined_output
+
+
+def test_qa_validate_rejects_invalid_web_selector_before_run(tmp_path: Path):
+    scenario_path = tmp_path / "invalid-selector.yaml"
+    scenario_path.write_text(
+        """scenario:
+  id: invalid-selector
+  title: Invalid selector
+targets:
+  - id: web
+    platform: web
+    backend: playwright
+    base_url: https://staging.example.com
+steps:
+  - id: submit-login
+    action: tap
+    target:
+      web:
+        label: Log in
+"""
+    )
+
+    result = CliRunner().invoke(app, ["qa", "validate", str(scenario_path)])
+
+    combined_output = result.stdout + result.stderr
+    assert result.exit_code != 0
+    assert "submit-login" in combined_output
+    assert "tap" in combined_output
+    assert "target.web {'label': 'Log" in combined_output
+    assert "in'}" in combined_output
+
+
 def test_qa_run_passed_run_exits_zero_and_writes_artifacts(tmp_path: Path):
     result = CliRunner().invoke(
         app,

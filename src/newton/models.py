@@ -13,6 +13,43 @@ ScreenshotPolicy = Literal["never", "on_failure", "after_each_step"]
 StepStatus = Literal["passed", "failed", "skipped"]
 RunStatus = Literal["passed", "failed", "skipped"]
 
+WEB_ACTIONS = frozenset(
+    {
+        "navigate",
+        "goto",
+        "tap",
+        "click",
+        "input_text",
+        "fill",
+        "assert_visible",
+        "wait_for_selector",
+        "expect_visible",
+        "assert_text",
+        "assert_url",
+    }
+)
+WEB_LOCATOR_ACTIONS = frozenset(
+    {
+        "tap",
+        "click",
+        "input_text",
+        "fill",
+        "assert_visible",
+        "wait_for_selector",
+        "expect_visible",
+    }
+)
+WEB_URL_ACTIONS = frozenset({"navigate", "goto", "assert_url"})
+WEB_SELECTOR_FAMILIES = ("role", "test_id", "text", "css", "url")
+WEB_LOCATOR_SELECTOR_FAMILIES = ("role", "test_id", "text", "css")
+WEB_SELECTOR_ALLOWED_KEYS = {
+    "role": frozenset({"role", "name"}),
+    "test_id": frozenset({"test_id"}),
+    "text": frozenset({"text"}),
+    "css": frozenset({"css"}),
+    "url": frozenset({"url"}),
+}
+
 
 class ArtifactContractVersionError(ValueError):
     """Raised when a Newton artifact is missing or using an unsupported contract version."""
@@ -57,6 +94,24 @@ class ScenarioTarget(BaseModel):
     build: str | None = None
     device: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def validate_backend_contract(self) -> "ScenarioTarget":
+        compatibility: dict[Backend, set[Platform]] = {
+            "dry-run": {"web", "ios"},
+            "playwright": {"web"},
+            "maestro": {"ios"},
+            "xcuitest": {"ios"},
+            "appium": {"ios"},
+        }
+        supported_platforms = compatibility[self.backend]
+        if self.platform not in supported_platforms:
+            raise ValueError(
+                f"backend '{self.backend}' does not support platform '{self.platform}'"
+            )
+        if self.platform == "web" and self.base_url is None:
+            raise ValueError(f"web target '{self.id}' must define base_url")
+        return self
+
 
 class TargetBinding(BaseModel):
     web: dict[str, Any] | None = None
@@ -70,6 +125,13 @@ class ScenarioStep(BaseModel):
     value: str | None = None
     timeout_ms: int = 10_000
     secure: bool = False
+
+    @field_validator("timeout_ms")
+    @classmethod
+    def timeout_must_be_positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("timeout_ms must be greater than 0")
+        return value
 
 
 class EvidencePolicy(BaseModel):
@@ -87,6 +149,7 @@ class ReportPolicy(BaseModel):
 
 
 class Scenario(BaseModel):
+    contract_version: Literal["v0.1"] = ARTIFACT_CONTRACT_VERSION
     meta: ScenarioMeta = Field(alias="scenario")
     targets: list[ScenarioTarget]
     steps: list[ScenarioStep]
@@ -111,6 +174,8 @@ class Scenario(BaseModel):
     def validate_step_bindings(self) -> "Scenario":
         platforms = {target.platform for target in self.targets}
         for step in self.steps:
+            if "web" in platforms:
+                validate_web_step(step)
             if step.action in {"navigate", "launch_app"}:
                 continue
             if step.target is None:
@@ -120,6 +185,126 @@ class Scenario(BaseModel):
             if "ios" in platforms and step.target.ios is None:
                 raise ValueError(f"step '{step.id}' is missing an ios target binding")
         return self
+
+
+def validate_web_step(step: ScenarioStep) -> None:
+    selector = step.target.web if step.target and step.target.web is not None else {}
+    if step.action not in WEB_ACTIONS:
+        supported = ", ".join(sorted(WEB_ACTIONS))
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                f"unsupported web action; supported actions: {supported}",
+            )
+        )
+
+    if step.action in WEB_LOCATOR_ACTIONS:
+        _validate_web_selector(
+            step,
+            selector,
+            allowed_families=WEB_LOCATOR_SELECTOR_FAMILIES,
+            required=True,
+        )
+        return
+
+    if step.action in WEB_URL_ACTIONS:
+        if selector:
+            _validate_web_selector(step, selector, allowed_families=("url",), required=False)
+        return
+
+    if step.action == "assert_text":
+        if selector:
+            _validate_web_selector(step, selector, allowed_families=("text",), required=False)
+        if not _non_blank_string(step.value) and "text" not in selector:
+            raise ValueError(
+                _web_step_validation_error(
+                    step,
+                    selector,
+                    "assert_text requires step.value or target.web.text",
+                )
+            )
+
+
+def _validate_web_selector(
+    step: ScenarioStep,
+    selector: dict[str, Any],
+    *,
+    allowed_families: tuple[str, ...],
+    required: bool,
+) -> None:
+    families = [family for family in WEB_SELECTOR_FAMILIES if family in selector]
+    if not families:
+        if required:
+            expected = ", ".join(allowed_families)
+            raise ValueError(
+                _web_step_validation_error(
+                    step,
+                    selector,
+                    f"requires target.web selector using one of: {expected}",
+                )
+            )
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                "uses unsupported web selector family",
+            )
+        )
+    if len(families) > 1:
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                f"uses multiple web selector families: {', '.join(families)}",
+            )
+        )
+
+    family = families[0]
+    if family not in allowed_families:
+        expected = ", ".join(allowed_families)
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                f"selector family '{family}' is not supported for this action; expected one of: {expected}",
+            )
+        )
+
+    extra_keys = set(selector) - WEB_SELECTOR_ALLOWED_KEYS[family]
+    if extra_keys:
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                f"unsupported selector field(s): {', '.join(sorted(extra_keys))}",
+            )
+        )
+
+    if not _non_blank_string(selector[family]):
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                f"selector field '{family}' must be a non-blank string",
+            )
+        )
+    if family == "role" and "name" in selector and not _non_blank_string(selector["name"]):
+        raise ValueError(
+            _web_step_validation_error(
+                step,
+                selector,
+                "selector field 'name' must be a non-blank string when provided",
+            )
+        )
+
+
+def _non_blank_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _web_step_validation_error(step: ScenarioStep, selector: dict[str, Any], detail: str) -> str:
+    return f"step '{step.id}' action '{step.action}' target.web {selector!r}: {detail}"
 
 
 class EvidenceArtifact(BaseModel):

@@ -192,12 +192,12 @@ newton qa doctor web
 
 ### 9. Tighten web scenario validation before execution
 
-- [ ] Add a scenario schema or contract version field for web scenarios.
-- [ ] Validate supported web actions before execution instead of discovering unsupported actions mid-run.
-- [ ] Validate selector payloads for supported selector families before execution.
-- [ ] Include step id, action, and selector payload in validation errors.
-- [ ] Add early validation for target/backend compatibility, required base URL, and invalid timeout values.
-- [ ] Add tests that invalid web actions and invalid selectors fail at `newton qa validate`.
+- [x] Add a scenario schema or contract version field for web scenarios.
+- [x] Validate supported web actions before execution instead of discovering unsupported actions mid-run.
+- [x] Validate selector payloads for supported selector families before execution.
+- [x] Include step id, action, and selector payload in validation errors.
+- [x] Add early validation for target/backend compatibility, required base URL, and invalid timeout values.
+- [x] Add tests that invalid web actions and invalid selectors fail at `newton qa validate`.
 
 Acceptance:
 
