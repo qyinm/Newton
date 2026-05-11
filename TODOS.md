@@ -449,10 +449,10 @@ uv run --extra dev --extra web pytest tests/test_web_playwright.py tests/test_do
 
 ### 22. Rewrite README around the release demo
 
-- [ ] Start with install, first QA plan, first web run, and first failure evidence.
-- [ ] Keep advanced agent-backed and plugin sections after the main flow.
-- [ ] Include expected output snippets for each command.
-- [ ] Explain where artifacts are written and how to inspect them.
+- [x] Start with install, first QA plan, first web run, and first failure evidence.
+- [x] Keep advanced agent-backed and plugin sections after the main flow.
+- [x] Include expected output snippets for each command.
+- [x] Explain where artifacts are written and how to inspect them.
 
 Acceptance:
 
@@ -466,10 +466,10 @@ rg -n "newton qa plan-bundle|newton qa run|qa-report.md|playwright-trace.zip" RE
 
 ### 23. Add troubleshooting docs
 
-- [ ] Document Playwright browser install failures.
-- [ ] Document common scenario validation failures.
-- [ ] Document selector failures and how to inspect traces.
-- [ ] Document agent command failures for Codex and Claude.
+- [x] Document Playwright browser install failures.
+- [x] Document common scenario validation failures.
+- [x] Document selector failures and how to inspect traces.
+- [x] Document agent command failures for Codex and Claude.
 
 Acceptance:
 

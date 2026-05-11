@@ -4,13 +4,6 @@ Newton v0.1 release promise: **Generate a source-backed QA plan and run web smok
 
 Newton is an agent-native, web-first QA harness that turns sprint context into source-backed planning artifacts, executable web smoke scenarios, and evidence-backed QA reports.
 
-## What Newton is not yet
-
-- Not mobile E2E.
-- Not a hosted runner.
-- Not a full test management system.
-- Not an automatic release approver.
-
 ## Install
 
 Install the official CLI directly from GitHub:
@@ -52,52 +45,81 @@ newton qa plan "$tmpdir/login-ticket.md" --agent template --target web --out "$t
 newton qa validate "$tmpdir/scenarios/login-smoke.generated.yaml"
 ```
 
-## Claude Code Plugin
+## First Release Demo
 
-Newton also ships a thin Claude Code plugin wrapper around the `newton` CLI. Add this repository as a Claude Code plugin marketplace, then install the `newton` plugin:
+From a checkout with dev dependencies installed, run the full web-first QA loop:
 
 ```bash
-claude plugin marketplace add qyinm/Newton
-claude plugin install newton@newton
+bash scripts/demo-web-release.sh
 ```
 
-Inside Claude Code, use:
+Expected output includes the planning bundle, scenario validation, passing and failing web runs, and the final handoff packet:
 
 ```text
-/newton-setup
-/newton-dogfood
-/newton-plan
-/newton-run
-/newton-bug-draft
+bundle: qa/dogfood/login/plan
+valid_bundle: login
+valid: login-smoke
+valid: login-validation
+valid: login-permission
+status: passed
+status: failed
+failed_report: qa/dogfood/login/runs/run_*/qa-report.md
+handoff: qa/dogfood/login/agent-handoff.md
 ```
 
-The plugin also includes the `newton-qa-workflow` skill, which routes natural-language QA planning, execution, tracker, and bug-draft requests through the same `newton qa ...` CLI artifact contract.
-
-If your Claude Code build expects in-session slash commands for plugin management, use the same arguments with `/plugin marketplace add qyinm/Newton` and `/plugin install newton@newton`.
-
-For local development from this checkout:
+The script starts local web fixtures, then runs the same CLI contract a human, agent, or CI job should use:
 
 ```bash
-python -m pip install -e '.[dev]'
+newton qa plan-bundle qa/dogfood/login/inputs/ticket.md \
+  --source qa/dogfood/login/inputs/policy.md \
+  --source qa/dogfood/login/inputs/design-notes.md \
+  --out qa/dogfood/login \
+  --bundle-dir-name plan
+newton qa bundle-validate qa/dogfood/login/plan
+newton qa run qa/dogfood/login/scenario/login-smoke.generated.yaml \
+  --target web \
+  --backend playwright \
+  --base-url http://127.0.0.1:<fixture-port> \
+  --plan-provenance qa/dogfood/login/scenario/ticket.template.plan.json \
+  --out qa/dogfood/login/runs
+newton qa tracker-update-from-run qa/dogfood/login/plan/qa-run-tracker.md \
+  --item 5 \
+  --env stg \
+  --run qa/dogfood/login/runs/run_*
+newton qa bug-draft qa/dogfood/login/plan/qa-run-tracker.md \
+  --out qa/dogfood/login/bug-ticket-draft.md
 ```
 
-For web execution:
+Inspect the artifacts:
 
 ```bash
-python -m pip install -e '.[dev,web]'
-python -m playwright install chromium
+cat qa/dogfood/login/agent-handoff.md
+cat qa/dogfood/login/bug-ticket-draft.md
+python -m playwright show-trace qa/dogfood/login/runs/<failed-run>/playwright-trace.zip
 ```
 
-## Release Checklist
+Key paths:
 
-Before tagging a Newton release, update `CHANGELOG.md`, confirm the version in
-`pyproject.toml`, and run:
-
-```bash
-uv run newton version
-uv run --extra dev --extra web pytest tests/test_cli.py -v
-uv build
+```text
+qa/dogfood/login/plan/qa-scope.md
+qa/dogfood/login/plan/qa-estimate.md
+qa/dogfood/login/scenario/login-smoke.generated.yaml
+qa/dogfood/login/runs/index.jsonl
+qa/dogfood/login/runs/run_*/result.json
+qa/dogfood/login/runs/run_*/qa-report.md
+qa/dogfood/login/runs/run_*/failure-step-*.png
+qa/dogfood/login/runs/run_*/playwright-trace.zip
+qa/dogfood/login/bug-ticket-draft.md
 ```
+
+Troubleshooting: see `docs/troubleshooting.md` for Playwright install failures, scenario validation errors, selector failures, trace inspection, and Codex/Claude command failures.
+
+## What Newton is not yet
+
+- Not mobile E2E.
+- Not a hosted runner.
+- Not a full test management system.
+- Not an automatic release approver.
 
 ## Plan a QA Bundle
 
@@ -320,8 +342,56 @@ bash scripts/demo-web-release.sh
 
 The demo script starts local fixtures, regenerates the planning bundle, validates three web scenarios, runs passing and failing Playwright cases, updates the tracker from the failed run, writes a bug draft, and prints the artifact paths. The committed dogfood run set includes passing runs plus a failing Playwright run with screenshot and trace evidence.
 
+## Claude Code Plugin
+
+Newton ships a thin Claude Code plugin wrapper around the `newton` CLI. Add this repository as a Claude Code plugin marketplace, then install the `newton` plugin:
+
+```bash
+claude plugin marketplace add qyinm/Newton
+claude plugin install newton@newton
+```
+
+Inside Claude Code, use:
+
+```text
+/newton-setup
+/newton-dogfood
+/newton-plan
+/newton-run
+/newton-bug-draft
+```
+
+The plugin also includes the `newton-qa-workflow` skill, which routes natural-language QA planning, execution, tracker, and bug-draft requests through the same `newton qa ...` CLI artifact contract.
+
+If your Claude Code build expects in-session slash commands for plugin management, use the same arguments with `/plugin marketplace add qyinm/Newton` and `/plugin install newton@newton`.
+
 ## Backends
 
 - `dry-run`: validates the full Newton pipeline without opening a browser or simulator
 - `playwright`: executes web scenarios and is the v0.1 release-quality backend
 - `maestro`: experimental roadmap adapter that compiles Newton iOS bindings to Maestro flow YAML and saves it as an artifact; it is not part of the v0.1 release promise
+
+## Local Development
+
+For local development from this checkout:
+
+```bash
+python -m pip install -e '.[dev]'
+```
+
+For web execution:
+
+```bash
+python -m pip install -e '.[dev,web]'
+python -m playwright install chromium
+```
+
+## Release Checklist
+
+Before tagging a Newton release, update `CHANGELOG.md`, confirm the version in `pyproject.toml`, and run:
+
+```bash
+uv run newton version
+uv run --extra dev --extra web pytest tests/test_cli.py -v
+uv build
+```
