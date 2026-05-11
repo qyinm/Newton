@@ -71,11 +71,11 @@ uv run --extra dev --extra web pytest tests/test_planning_bundle_validation.py t
 
 ### 3. Replace the template bundle's shallow parser with structured source extraction
 
-- [ ] Create a small internal extraction model for source facts: feature goal, screens, user roles, states, policies, environments, dependencies, regression areas, and unknowns.
-- [ ] Parse common markdown sections beyond literal `Acceptance criteria`: scope, user stories, requirements, policy, design notes, risks, out of scope, environments.
-- [ ] Preserve source references for every extracted fact.
-- [ ] Render extracted facts into `qa-scope.md` and `qa-estimate.md`.
-- [ ] Add tests for multi-source extraction using ticket, policy, and design-note fixtures.
+- [x] Create a small internal extraction model for source facts: feature goal, screens, user roles, states, policies, environments, dependencies, regression areas, and unknowns.
+- [x] Parse common markdown sections beyond literal `Acceptance criteria`: scope, user stories, requirements, policy, design notes, risks, out of scope, environments.
+- [x] Preserve source references for every extracted fact.
+- [x] Render extracted facts into `qa-scope.md` and `qa-estimate.md`.
+- [x] Add tests for multi-source extraction using ticket, policy, and design-note fixtures.
 
 Acceptance:
 

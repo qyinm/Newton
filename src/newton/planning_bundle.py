@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from newton.models import ARTIFACT_CONTRACT_VERSION
@@ -11,6 +12,44 @@ from newton.models import ARTIFACT_CONTRACT_VERSION
 
 class PlanningBundleError(ValueError):
     """Raised when markdown context cannot produce a planning bundle."""
+
+
+@dataclass(frozen=True)
+class SourceReference:
+    path: Path
+    section: str
+
+    def display(self) -> str:
+        if self.section:
+            return f"{self.path.name}#{self.section}"
+        return self.path.name
+
+
+@dataclass(frozen=True)
+class SourceFact:
+    kind: str
+    text: str
+    source_reference: SourceReference
+
+
+@dataclass(frozen=True)
+class SourceFacts:
+    feature_goal: list[SourceFact]
+    screens: list[SourceFact]
+    user_roles: list[SourceFact]
+    states: list[SourceFact]
+    policies: list[SourceFact]
+    environments: list[SourceFact]
+    dependencies: list[SourceFact]
+    regression_areas: list[SourceFact]
+    unknowns: list[SourceFact]
+    out_of_scope: list[SourceFact]
+
+
+@dataclass(frozen=True)
+class MarkdownItem:
+    text: str
+    source_reference: SourceReference
 
 
 def generate_planning_bundle(
@@ -25,8 +64,9 @@ def generate_planning_bundle(
     markdown = markdown_by_path[0]
     title = _extract_title(markdown)
     plan_id = _slugify(title)
-    summary = _extract_summary(markdown)
-    checklist_items = _extract_all_acceptance_criteria(markdown_by_path) or [summary]
+    source_facts = _extract_source_facts(list(zip(all_source_paths, markdown_by_path, strict=True)))
+    summary = source_facts.feature_goal[0].text if source_facts.feature_goal else _extract_summary(markdown)
+    checklist_items = _extract_all_acceptance_criteria(markdown_by_path) or _facts_to_checklist(source_facts) or [summary]
 
     bundle_dir = out_dir / (bundle_dir_name or plan_id)
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -40,11 +80,11 @@ def generate_planning_bundle(
     qa_run_tracker_path = bundle_dir / "qa-run-tracker.md"
     manifest_path = bundle_dir / "manifest.json"
 
-    qa_scope_path.write_text(_render_scope(title, summary, all_source_paths))
+    qa_scope_path.write_text(_render_scope(title, summary, all_source_paths, source_facts))
     checklist_path.write_text(_render_checklist(title, checklist_items))
     test_cases_path.write_text(_render_test_cases_csv(checklist_items))
     risk_map_path.write_text(_render_risk_map(title))
-    qa_estimate_path.write_text(_render_estimate(title, checklist_items, all_source_paths))
+    qa_estimate_path.write_text(_render_estimate(title, checklist_items, all_source_paths, source_facts))
     automation_candidates_path.write_text(_render_automation_candidates(title, checklist_items))
     qa_run_tracker_path.write_text(_render_run_tracker(title, checklist_items))
     manifest: dict[str, object] = {
@@ -76,6 +116,158 @@ def _read_markdown_sources(paths: list[Path]) -> list[str]:
             raise PlanningBundleError(f"input markdown not found: {path}")
         markdown_sources.append(path.read_text())
     return markdown_sources
+
+
+def _extract_source_facts(markdown_sources: list[tuple[Path, str]]) -> SourceFacts:
+    facts: dict[str, list[SourceFact]] = {
+        "feature_goal": [],
+        "screens": [],
+        "user_roles": [],
+        "states": [],
+        "policies": [],
+        "environments": [],
+        "dependencies": [],
+        "regression_areas": [],
+        "unknowns": [],
+        "out_of_scope": [],
+    }
+    seen: set[tuple[str, str, str]] = set()
+    for path, markdown in markdown_sources:
+        for item in _iter_markdown_items(path, markdown):
+            for fact in _facts_from_markdown_item(item):
+                dedupe_key = (fact.kind, fact.text.casefold(), fact.source_reference.display())
+                if dedupe_key in seen:
+                    continue
+                seen.add(dedupe_key)
+                facts[fact.kind].append(fact)
+    return SourceFacts(**facts)
+
+
+def _iter_markdown_items(path: Path, markdown: str) -> list[MarkdownItem]:
+    items: list[MarkdownItem] = []
+    section = "Summary"
+    saw_document_title = False
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        heading = re.match(r"^(#{1,6})\s+(.+?)\s*$", stripped)
+        if heading:
+            level = len(heading.group(1))
+            heading_title = heading.group(2).strip()
+            if level == 1 and not saw_document_title:
+                saw_document_title = True
+                section = "Summary"
+                continue
+            section = heading_title
+            continue
+
+        if _is_plain_section_label(stripped):
+            section = stripped.rstrip(":").strip()
+            continue
+
+        text = _strip_markdown_list_marker(stripped)
+        if text:
+            items.append(MarkdownItem(text=text, source_reference=SourceReference(path=path, section=section)))
+    return items
+
+
+def _is_plain_section_label(value: str) -> bool:
+    return bool(re.match(r"^[A-Za-z][A-Za-z0-9 /&()_-]{1,80}:$", value))
+
+
+def _strip_markdown_list_marker(value: str) -> str:
+    stripped = re.sub(r"^[-*+]\s+", "", value)
+    stripped = re.sub(r"^\d+[.)]\s+", "", stripped)
+    return stripped.strip()
+
+
+def _facts_from_markdown_item(item: MarkdownItem) -> list[SourceFact]:
+    section_key = _section_key(item.source_reference.section)
+    text = _clean_fact_text(item.text)
+    if not text:
+        return []
+
+    screen_text = _inline_label_value(text, ["screens", "screen"])
+    if screen_text:
+        return [_source_fact("screens", screen_text, item.source_reference)]
+
+    if section_key in {"scope", "goal", "objective", "summary", "overview"}:
+        return [_source_fact("feature_goal", text, item.source_reference)]
+    if section_key in {"user_stories", "user_story", "roles", "user_roles", "personas"}:
+        role = _extract_user_role(text)
+        return [_source_fact("user_roles", role or text, item.source_reference)]
+    if section_key in {"requirements", "requirement", "acceptance_criteria", "acceptance", "states", "state"}:
+        return [_source_fact("states", text, item.source_reference)]
+    if section_key in {"policy", "policies", "policy_references", "policy_notes"}:
+        return [_source_fact("policies", text, item.source_reference)]
+    if section_key in {"environments", "environment", "test_environments", "test_matrix"}:
+        return [_source_fact("environments", text, item.source_reference)]
+    if section_key in {"dependencies", "dependency", "integrations", "integration"}:
+        return [_source_fact("dependencies", text, item.source_reference)]
+    if section_key in {"risks", "risk", "regression", "regressions", "regression_notes", "regression_areas"}:
+        return [_source_fact("regression_areas", text, item.source_reference)]
+    if section_key in {"unknowns", "unknown", "open_questions", "questions", "todos", "todo"}:
+        return [_source_fact("unknowns", text, item.source_reference)]
+    if section_key in {"out_of_scope", "out_of_scopes", "non_goals", "non_goal"}:
+        return [_source_fact("out_of_scope", text, item.source_reference)]
+    if section_key in {"design_notes", "design_note", "design_references", "design"}:
+        return _facts_from_design_note(text, item.source_reference)
+
+    if "?" in text or re.search(r"\b(tbd|unknown|confirm|not confirmed)\b", text, re.IGNORECASE):
+        return [_source_fact("unknowns", text, item.source_reference)]
+    return []
+
+
+def _facts_from_design_note(text: str, source_reference: SourceReference) -> list[SourceFact]:
+    lowered = text.lower()
+    if "state" in lowered or re.search(r"\b(success|failure|error|locked|expired|timeout)\b", lowered):
+        return [_source_fact("states", text, source_reference)]
+    if re.search(r"\b(screen|page|route)\b", lowered):
+        return [_source_fact("screens", text, source_reference)]
+    if re.search(r"\b(api|service|depends|dependency|requires|required)\b", lowered):
+        return [_source_fact("dependencies", text, source_reference)]
+    return []
+
+
+def _source_fact(kind: str, text: str, source_reference: SourceReference) -> SourceFact:
+    return SourceFact(kind=kind, text=_clean_fact_text(text), source_reference=source_reference)
+
+
+def _clean_fact_text(text: str) -> str:
+    return text.strip().rstrip(";")
+
+
+def _inline_label_value(text: str, labels: list[str]) -> str | None:
+    for label in labels:
+        match = re.match(rf"^{re.escape(label)}\s*:\s*(.+)$", text, re.IGNORECASE)
+        if match:
+            return _clean_fact_text(match.group(1))
+    return None
+
+
+def _extract_user_role(text: str) -> str | None:
+    match = re.match(r"as an?\s+([^,]+),", text, re.IGNORECASE)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+def _section_key(section: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", section.casefold()).strip("_")
+
+
+def _facts_to_checklist(facts: SourceFacts) -> list[str]:
+    checklist_facts = [
+        *facts.states,
+        *facts.policies,
+        *facts.screens,
+        *facts.dependencies,
+        *facts.regression_areas,
+        *facts.unknowns,
+    ]
+    return [fact.text for fact in checklist_facts]
 
 
 def _extract_all_acceptance_criteria(markdown_sources: list[str]) -> list[str]:
@@ -134,8 +326,10 @@ def _extract_acceptance_criteria(markdown: str) -> list[str]:
     return items
 
 
-def _render_scope(title: str, summary: str, source_paths: list[Path]) -> str:
+def _render_scope(title: str, summary: str, source_paths: list[Path], source_facts: SourceFacts) -> str:
     sources = "\n".join(f"- `{source_path}`" for source_path in source_paths)
+    fact_table = _render_source_fact_table(source_facts)
+    out_of_scope = _render_out_of_scope(source_facts)
     return f"""# QA Scope: {title}
 
 ## Sources
@@ -146,6 +340,10 @@ def _render_scope(title: str, summary: str, source_paths: list[Path]) -> str:
 
 {summary}
 
+## Extracted Source Facts
+
+{fact_table}
+
 ## In Scope
 
 - Validate the primary user flow described in the source context.
@@ -153,9 +351,51 @@ def _render_scope(title: str, summary: str, source_paths: list[Path]) -> str:
 
 ## Out of Scope
 
-- Cross-browser matrix expansion.
-- Performance, security, and accessibility deep dives unless explicitly listed in the source context.
+{out_of_scope}
 """
+
+
+def _render_source_fact_table(source_facts: SourceFacts) -> str:
+    rows: list[str] = []
+    for label, facts in _source_fact_groups(source_facts):
+        for fact in facts:
+            rows.append(
+                "| "
+                f"{label} | "
+                f"{_markdown_table_cell(fact.text)} | "
+                f"`{_markdown_table_cell(fact.source_reference.display())}` |"
+            )
+    if not rows:
+        return "No structured source facts were extracted."
+    return "\n".join(["| Fact Type | Fact | Source |", "| --- | --- | --- |", *rows])
+
+
+def _render_out_of_scope(source_facts: SourceFacts) -> str:
+    if not source_facts.out_of_scope:
+        return "\n".join(
+            [
+                "- Cross-browser matrix expansion.",
+                "- Performance, security, and accessibility deep dives unless explicitly listed in the source context.",
+            ]
+        )
+    return "\n".join(
+        f"- {fact.text}\n  - Source: `{fact.source_reference.display()}`" for fact in source_facts.out_of_scope
+    )
+
+
+def _source_fact_groups(source_facts: SourceFacts) -> list[tuple[str, list[SourceFact]]]:
+    return [
+        ("Feature Goal", source_facts.feature_goal),
+        ("Screens", source_facts.screens),
+        ("User Roles", source_facts.user_roles),
+        ("States", source_facts.states),
+        ("Policies", source_facts.policies),
+        ("Environments", source_facts.environments),
+        ("Dependencies", source_facts.dependencies),
+        ("Regression Areas", source_facts.regression_areas),
+        ("Unknowns", source_facts.unknowns),
+        ("Out Of Scope", source_facts.out_of_scope),
+    ]
 
 
 def _render_checklist(title: str, items: list[str]) -> str:
@@ -214,8 +454,60 @@ Source: generated PRD baseline risks
 """
 
 
-def _render_estimate(title: str, checklist_items: list[str], source_paths: list[Path]) -> str:
+def _render_estimate_fact_rows(source_facts: SourceFacts) -> str:
+    rows: list[str] = []
+    for factor, facts in [
+        ("feature_goal", source_facts.feature_goal),
+        ("screens", source_facts.screens),
+        ("user_roles", source_facts.user_roles),
+        ("states", source_facts.states),
+        ("policies", source_facts.policies),
+        ("environments", source_facts.environments),
+        ("dependencies", source_facts.dependencies),
+        ("regression_areas", source_facts.regression_areas),
+        ("unknowns", source_facts.unknowns),
+        ("out_of_scope", source_facts.out_of_scope),
+    ]:
+        if not facts:
+            continue
+        rows.append(
+            "| "
+            f"{factor} | "
+            f"{len(facts)} extracted | "
+            f"{_markdown_table_cell(_join_fact_texts(facts))} | "
+            f"{_join_fact_sources(facts)} |"
+        )
+    return "\n".join(rows)
+
+
+def _join_fact_texts(facts: list[SourceFact]) -> str:
+    values = [fact.text for fact in facts[:3]]
+    if len(facts) > 3:
+        values.append(f"+{len(facts) - 3} more")
+    return "; ".join(values)
+
+
+def _join_fact_sources(facts: list[SourceFact]) -> str:
+    unique_sources: list[str] = []
+    for fact in facts:
+        source = fact.source_reference.display()
+        if source not in unique_sources:
+            unique_sources.append(source)
+    return ", ".join(f"`{_markdown_table_cell(source)}`" for source in unique_sources)
+
+
+def _markdown_table_cell(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", " ")
+
+
+def _render_estimate(
+    title: str,
+    checklist_items: list[str],
+    source_paths: list[Path],
+    source_facts: SourceFacts,
+) -> str:
     source_input = source_paths[0]
+    fact_rows = _render_estimate_fact_rows(source_facts)
     source_rows = "\n".join(
         f"| source_{index} | `{source_path.name}` | Provided planning context included in bundle generation | `{source_path}` |"
         for index, source_path in enumerate(source_paths, start=1)
@@ -238,6 +530,7 @@ Estimated QA effort: S
 | --- | --- | --- | --- |
 | checklist_items | {len(checklist_items)} items | Extracted acceptance criteria count | `{source_input}` |
 | risk_level | P0 functional | Primary flow blocks core user access | `{source_input}` |
+{fact_rows}
 {source_rows}
 
 ## Suggested Manual QA Time

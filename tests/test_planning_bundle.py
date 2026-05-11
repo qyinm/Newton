@@ -144,6 +144,97 @@ Acceptance criteria:
     assert rows[-1]["source_reference"] == "Acceptance criteria item 7"
 
 
+def test_generate_planning_bundle_extracts_structured_facts_from_multiple_sources(tmp_path: Path):
+    sources = tmp_path / "sources"
+    sources.mkdir()
+    ticket = sources / "ticket.md"
+    ticket.write_text(
+        """# Account Recovery Login
+
+## Scope
+- Users can sign in, recover a locked account, and return to the dashboard.
+- Screens: Login page, Account recovery page, Dashboard.
+
+## User Stories
+- As a customer, I can sign in with email and password.
+- As a locked user, I can reach account recovery guidance.
+
+## Requirements
+- Valid credentials redirect to Dashboard.
+- Invalid passwords keep the user on Login with generic retry guidance.
+- Expired sessions return to Login.
+
+## Environments
+- dev
+- staging
+
+## Dependencies
+- Auth API, session service, and email recovery service must be reachable.
+
+## Risks
+- Dashboard navigation can regress.
+
+## Unknowns
+- MFA rollout timing is not confirmed.
+"""
+    )
+    policy = sources / "policy.md"
+    policy.write_text(
+        """# Auth Copy Policy
+
+## Policy
+- Never reveal whether an email address exists.
+- Locked accounts must show recovery copy.
+
+## Out of Scope
+- Admin SSO policy changes.
+"""
+    )
+    design_notes = sources / "design-notes.md"
+    design_notes.write_text(
+        """# Login Design Notes
+
+## Design Notes
+- Login screen uses a textbox named Email.
+- Password field uses `data-testid="password-input"`.
+- Primary action is a button named Log in.
+- Success state reveals Dashboard text.
+"""
+    )
+
+    bundle_dir = generate_planning_bundle(
+        ticket,
+        out_dir=tmp_path / "plans",
+        source_paths=[policy, design_notes],
+    )
+
+    scope = (bundle_dir / "qa-scope.md").read_text()
+    assert "## Extracted Source Facts" in scope
+    assert "| Feature Goal | Users can sign in, recover a locked account, and return to the dashboard. | `ticket.md#Scope` |" in scope
+    assert "| Screens | Login page, Account recovery page, Dashboard. | `ticket.md#Scope` |" in scope
+    assert "| User Roles | customer | `ticket.md#User Stories` |" in scope
+    assert "| Policies | Never reveal whether an email address exists. | `policy.md#Policy` |" in scope
+    assert "| Out Of Scope | Admin SSO policy changes. | `policy.md#Out of Scope` |" in scope
+    assert "| Dependencies | Auth API, session service, and email recovery service must be reachable. | `ticket.md#Dependencies` |" in scope
+    assert "| Unknowns | MFA rollout timing is not confirmed. | `ticket.md#Unknowns` |" in scope
+    assert "`design-notes.md#Design Notes`" in scope
+
+    checklist = (bundle_dir / "checklist.md").read_text()
+    assert "- [ ] Valid credentials redirect to Dashboard." in checklist
+    assert "- [ ] Never reveal whether an email address exists." in checklist
+    assert "- [ ] Login screen uses a textbox named Email." in checklist
+
+    estimate = (bundle_dir / "qa-estimate.md").read_text()
+    assert "| screens | 2 extracted |" in estimate
+    assert "| user_roles | 2 extracted |" in estimate
+    assert "| states | 4 extracted |" in estimate
+    assert "| policies | 2 extracted |" in estimate
+    assert "| environments | 2 extracted | dev; staging | `ticket.md#Environments` |" in estimate
+    assert "| dependencies | 1 extracted |" in estimate
+    assert "| regression_areas | 1 extracted | Dashboard navigation can regress. | `ticket.md#Risks` |" in estimate
+    assert "| unknowns | 1 extracted | MFA rollout timing is not confirmed. | `ticket.md#Unknowns` |" in estimate
+
+
 def test_generate_planning_bundle_rejects_empty_input(tmp_path: Path):
     empty = tmp_path / "empty.md"
     empty.write_text("\n")
