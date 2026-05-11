@@ -304,6 +304,7 @@ newton qa run qa/dogfood/login/scenario/login-smoke.generated.yaml \
   --backend playwright \
   --base-url http://127.0.0.1:8124 \
   --plan-provenance qa/dogfood/login/scenario/login_ticket.template.plan.json \
+  --allow-failure \
   --out qa/dogfood/login/runs
 newton qa tracker-update-from-run qa/dogfood/login/plan/qa-run-tracker.md \
   --item 5 \

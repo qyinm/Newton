@@ -29,6 +29,21 @@ newton qa report qa/runs/<run_id>
 
 `--base-url` overrides the scenario target's `base_url`, which lets the same scenario run against local fixtures, preview deployments, staging, or production.
 
+## CI release gate
+
+For release gates, call `newton qa run` without `--allow-failure`:
+
+```bash
+newton qa validate qa/scenarios/web-login-smoke.yaml
+newton qa run qa/scenarios/web-login-smoke.yaml \
+  --target web \
+  --backend playwright \
+  --base-url "$PREVIEW_URL" \
+  --out qa/runs
+```
+
+Newton writes `result.json`, `qa-report.md`, and `index.jsonl` before the command exits. Passing runs exit `0`; non-passing runs exit non-zero so CI can block the release. Reserve `--allow-failure` for dogfood or diagnostic runs that intentionally capture failing evidence without failing the shell command.
+
 ## Supported web actions
 
 - `navigate` / `goto`

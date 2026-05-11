@@ -4,6 +4,26 @@ import json
 from typer.testing import CliRunner
 
 from newton.cli import app
+from newton.models import RunResult, StepResult
+
+
+class FailingBackend:
+    def run(self, scenario, target, run_dir):
+        return RunResult(
+            run_id=run_dir.name,
+            scenario_id=scenario.meta.id,
+            target_id=target.id,
+            platform=target.platform,
+            status="failed",
+            steps=[
+                StepResult(
+                    id="assert-dashboard",
+                    action="assert_visible",
+                    status="failed",
+                    error="Dashboard was not visible",
+                )
+            ],
+        )
 
 
 def test_version_command_prints_version():
@@ -23,7 +43,7 @@ def test_qa_validate_accepts_valid_scenario():
     assert "valid: web-login-smoke" in result.stdout
 
 
-def test_qa_run_dry_run_writes_artifacts(tmp_path: Path):
+def test_qa_run_passed_run_exits_zero_and_writes_artifacts(tmp_path: Path):
     result = CliRunner().invoke(
         app,
         [
@@ -41,8 +61,74 @@ def test_qa_run_dry_run_writes_artifacts(tmp_path: Path):
 
     assert result.exit_code == 0
     assert "run:" in result.stdout
+    assert "status: passed" in result.stdout
     assert list(tmp_path.glob("run_*/result.json"))
     assert list(tmp_path.glob("run_*/qa-report.md"))
+
+
+def test_qa_run_failed_run_exits_nonzero_after_writing_artifacts(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr("newton.runner.get_backend", lambda name: FailingBackend())
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "dry-run",
+            "--out",
+            str(tmp_path / "runs"),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "run:" in result.stdout
+    assert "status: failed" in result.stdout
+    result_paths = list((tmp_path / "runs").glob("run_*/result.json"))
+    report_paths = list((tmp_path / "runs").glob("run_*/qa-report.md"))
+    assert result_paths
+    assert report_paths
+    payload = json.loads(result_paths[0].read_text())
+    assert payload["status"] == "failed"
+    index_entries = [
+        json.loads(line)
+        for line in (tmp_path / "runs" / "index.jsonl").read_text().splitlines()
+    ]
+    assert index_entries[0]["status"] == "failed"
+
+
+def test_qa_run_failed_run_with_allow_failure_exits_zero_and_writes_artifacts(
+    tmp_path: Path, monkeypatch
+):
+    monkeypatch.setattr("newton.runner.get_backend", lambda name: FailingBackend())
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "dry-run",
+            "--allow-failure",
+            "--out",
+            str(tmp_path / "runs"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "run:" in result.stdout
+    assert "status: failed" in result.stdout
+    result_paths = list((tmp_path / "runs").glob("run_*/result.json"))
+    assert result_paths
+    assert json.loads(result_paths[0].read_text())["status"] == "failed"
+    assert list((tmp_path / "runs").glob("run_*/qa-report.md"))
+    assert (tmp_path / "runs" / "index.jsonl").exists()
 
 
 def test_qa_run_accepts_base_url_option(tmp_path: Path):

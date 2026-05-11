@@ -244,6 +244,11 @@ def qa_run(
         "--plan-provenance",
         help="Accepted qa plan provenance JSON to link into the run report",
     ),
+    allow_failure: bool = typer.Option(
+        False,
+        "--allow-failure",
+        help="Exit 0 even when the scenario run does not pass; intended for dogfood and diagnostics",
+    ),
     out: Path = typer.Option(Path("qa/runs"), "--out", help="Run output directory"),
 ) -> None:
     """Run a Newton QA scenario."""
@@ -263,6 +268,8 @@ def qa_run(
 
     typer.echo(f"run: {out / result.run_id}")
     typer.echo(f"status: {result.status}")
+    if not result.passed and not allow_failure:
+        raise typer.Exit(code=1)
 
 
 @qa_app.command("report")

@@ -153,11 +153,11 @@ uv run --extra dev --extra web pytest tests/test_bundle_review.py -v
 
 ### 7. Make web runs CI-correct
 
-- [ ] Change `newton qa run` so failed scenario runs exit non-zero by default.
-- [ ] Add `--allow-failure` for dogfood and diagnostic workflows that intentionally capture a failing run.
-- [ ] Ensure `result.json`, `qa-report.md`, and `index.jsonl` are still written before the CLI exits non-zero.
-- [ ] Add CLI tests for passed run exit `0`, failed run exit non-zero, and failed run with `--allow-failure` exit `0`.
-- [ ] Document how CI should call `newton qa run` for release gates.
+- [x] Change `newton qa run` so failed scenario runs exit non-zero by default.
+- [x] Add `--allow-failure` for dogfood and diagnostic workflows that intentionally capture a failing run.
+- [x] Ensure `result.json`, `qa-report.md`, and `index.jsonl` are still written before the CLI exits non-zero.
+- [x] Add CLI tests for passed run exit `0`, failed run exit non-zero, and failed run with `--allow-failure` exit `0`.
+- [x] Document how CI should call `newton qa run` for release gates.
 
 Acceptance:
 
