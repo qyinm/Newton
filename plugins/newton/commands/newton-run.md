@@ -6,6 +6,8 @@ description: Run a Newton scenario with the Playwright backend
 
 Run a Newton scenario with the Playwright backend.
 
+This command is the execution step in Newton's release-quality web flow: web-first scenario validation, Playwright run evidence, and a replayable report.
+
 Use the user-provided scenario, target, and base URL when present. For the checked-in login dogfood scenario:
 
 ```bash

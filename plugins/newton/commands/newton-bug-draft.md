@@ -6,6 +6,8 @@ description: Update a Newton tracker from a run and draft a bug ticket
 
 Update a Newton QA run tracker from a run result and draft a bug ticket.
 
+This command closes Newton's release-quality web flow: use web-first run evidence to update the tracker and create a bug draft without bypassing `newton qa ...`.
+
 Use the user-provided tracker, run directory, item number, and environment when present. For the checked-in failing dogfood run:
 
 ```bash

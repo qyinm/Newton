@@ -56,6 +56,18 @@ def test_claude_plugin_commands_wrap_newton_cli():
             assert snippet in text
 
 
+def test_claude_plugin_commands_document_release_quality_web_flow():
+    for filename in [
+        "newton-plan.md",
+        "newton-run.md",
+        "newton-bug-draft.md",
+    ]:
+        text = (PLUGIN_ROOT / "commands" / filename).read_text()
+
+        assert "release-quality web flow" in text
+        assert "web-first" in text
+
+
 def test_claude_plugin_has_newton_qa_workflow_skill():
     skill = PLUGIN_ROOT / "skills" / "newton-qa-workflow" / "SKILL.md"
     text = skill.read_text()
@@ -74,9 +86,18 @@ def test_claude_plugin_has_newton_qa_workflow_skill():
         "newton qa bug-draft",
         "input files",
         "generated artifacts",
+        "commands run",
         "run id",
         "evidence paths",
         "remaining risk",
+        "release-quality web flow",
+        "web-first",
+        "planning only",
+        "scenario generation",
+        "web run",
+        "tracker update",
+        "bug draft",
+        "Mobile execution is not release-ready",
     ]:
         assert snippet in text
 

@@ -6,6 +6,8 @@ description: Generate a Newton QA plan bundle and scenario from markdown context
 
 Generate a Newton QA planning bundle and scenario from markdown context.
 
+This command supports Newton's release-quality web flow: web-first planning artifacts followed by a `--target web` scenario that can be validated and run with Playwright.
+
 Use the user-provided paths when present. For the default login dogfood input, run:
 
 ```bash

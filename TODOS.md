@@ -334,10 +334,10 @@ uv run --extra dev --extra web pytest tests/test_bug_draft.py tests/test_tracker
 
 ### 16. Make natural-language QA routing reliable
 
-- [ ] Update `plugins/newton/skills/newton-qa-workflow/SKILL.md` so web-first execution is explicit.
-- [ ] Add examples for: planning only, scenario generation, web run, tracker update, and bug draft.
-- [ ] Add a final-response checklist for artifacts, commands run, evidence paths, and remaining risk.
-- [ ] Add tests that plugin command docs and skill text mention release-quality web flow.
+- [x] Update `plugins/newton/skills/newton-qa-workflow/SKILL.md` so web-first execution is explicit.
+- [x] Add examples for: planning only, scenario generation, web run, tracker update, and bug draft.
+- [x] Add a final-response checklist for artifacts, commands run, evidence paths, and remaining risk.
+- [x] Add tests that plugin command docs and skill text mention release-quality web flow.
 
 Acceptance:
 
