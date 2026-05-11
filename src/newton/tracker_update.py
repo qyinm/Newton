@@ -58,7 +58,9 @@ def update_tracker_item_from_run(
     status = _tracker_status_from_run_result(result)
     run_id = str(result.get("run_id") or run_path.name)
     report_path = run_path / "qa-report.md"
-    run_note = f"Run {run_id} {status}; report: {report_path}"
+    evidence_paths = _run_evidence_paths(result, run_path)
+    evidence_note = f"; evidence: {', '.join(evidence_paths)}" if evidence_paths else ""
+    run_note = f"Run {run_id} {status}; report: {report_path}; result: {result_path}{evidence_note}"
     return _update_tracker_item(
         tracker_path,
         item_number=item_number,
@@ -76,6 +78,33 @@ def _tracker_status_from_run_result(result: dict[str, Any]) -> str:
     if status == "skipped":
         return "blocked"
     raise TrackerUpdateError(f"unsupported run result status: {status or '<missing>'}")
+
+
+def _run_evidence_paths(result: dict[str, Any], run_path: Path) -> list[str]:
+    evidence_paths: list[str] = []
+    for artifact in _iter_run_evidence(result):
+        path = artifact.get("path")
+        if not isinstance(path, str) or not path.strip():
+            continue
+        evidence_path = Path(path)
+        rendered_path = str(evidence_path if evidence_path.is_absolute() else run_path / evidence_path)
+        if rendered_path not in evidence_paths:
+            evidence_paths.append(rendered_path)
+    return evidence_paths
+
+
+def _iter_run_evidence(result: dict[str, Any]) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    for artifact in result.get("evidence", []):
+        if isinstance(artifact, dict):
+            evidence.append(artifact)
+    for step in result.get("steps", []):
+        if not isinstance(step, dict):
+            continue
+        for artifact in step.get("evidence", []):
+            if isinstance(artifact, dict):
+                evidence.append(artifact)
+    return evidence
 
 
 def _update_environment_status(lines: list[str], env: str, status: str) -> list[str]:

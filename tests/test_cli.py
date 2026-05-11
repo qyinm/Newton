@@ -739,6 +739,26 @@ def test_qa_bug_draft_generates_bug_ticket_from_failed_tracker_item(tmp_path: Pa
     assert (tmp_path / "bug-ticket-draft.md").exists()
 
 
+def test_qa_bug_draft_accepts_issue_tracker_format(tmp_path: Path):
+    tracker_path = tmp_path / "qa-run-tracker.md"
+    tracker_path.write_text(
+        """# QA Run Tracker: Login
+
+## Checklist Status
+
+- [ ] User sees Dashboard
+  - env: stg
+  - status: failed
+  - notes: Dashboard never appears after submit
+"""
+    )
+
+    result = CliRunner().invoke(app, ["qa", "bug-draft", str(tracker_path), "--format", "linear"])
+
+    assert result.exit_code == 0
+    assert "# Linear Issue Draft" in (tmp_path / "bug-ticket-draft.md").read_text()
+
+
 def test_qa_tracker_update_updates_generated_tracker_item(tmp_path: Path):
     result = CliRunner().invoke(
         app,

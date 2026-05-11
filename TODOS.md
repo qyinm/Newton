@@ -314,10 +314,10 @@ uv run --extra dev --extra web pytest tests/test_tracker_update.py tests/test_pl
 
 ### 15. Make bug drafts issue-tracker ready
 
-- [ ] Include title, severity, priority, environment, failed step, reproduction steps, expected result, actual result, source references, evidence paths, and suspected owner/area.
-- [ ] Use run evidence when `tracker-update-from-run` created the failure.
-- [ ] Add `--format markdown|linear|jira` if the field mapping can stay file-first.
-- [ ] Add tests for manual failure and run-derived failure drafts.
+- [x] Include title, severity, priority, environment, failed step, reproduction steps, expected result, actual result, source references, evidence paths, and suspected owner/area.
+- [x] Use run evidence when `tracker-update-from-run` created the failure.
+- [x] Add `--format markdown|linear|jira` if the field mapping can stay file-first.
+- [x] Add tests for manual failure and run-derived failure drafts.
 
 Acceptance:
 

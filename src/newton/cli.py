@@ -218,10 +218,11 @@ def qa_doctor_web() -> None:
 def qa_bug_draft(
     tracker_path: Path,
     out: Path | None = typer.Option(None, "--out", help="Bug ticket draft output path"),
+    output_format: str = typer.Option("markdown", "--format", help="Draft format: markdown, linear, or jira"),
 ) -> None:
     """Generate a bug ticket draft from the first failed tracker item."""
     try:
-        output_path = write_bug_ticket_draft(tracker_path, output_path=out)
+        output_path = write_bug_ticket_draft(tracker_path, output_path=out, output_format=output_format)
     except BugDraftError as exc:
         raise typer.BadParameter(str(exc)) from exc
 

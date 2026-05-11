@@ -92,6 +92,48 @@ def test_update_tracker_item_from_run_maps_result_status_and_preserves_run_histo
     assert "      - Run old_stg failed; report: /tmp/old-report.md" in updated
     assert "      - Run run_123 passed; report:" in updated
     assert str(run_path / "qa-report.md") in updated
+    assert str(run_path / "result.json") in updated
+
+
+def test_update_tracker_item_from_failed_run_preserves_evidence_paths(tmp_path: Path):
+    tracker_path = tmp_path / "qa-run-tracker.md"
+    tracker_path.write_text(TRACKER)
+    run_path = tmp_path / "runs" / "run_failed"
+    run_path.mkdir(parents=True)
+    (run_path / "result.json").write_text(
+        """{
+  "contract_version": "v0.1",
+  "run_id": "run_failed",
+  "scenario_id": "web-login-smoke",
+  "target_id": "web",
+  "platform": "web",
+  "status": "failed",
+  "steps": [
+    {
+      "id": "assert-dashboard",
+      "action": "assert_visible",
+      "status": "failed",
+      "error": "Dashboard did not appear",
+      "evidence": [
+        {"kind": "screenshot", "path": "failure-step-001-assert-dashboard.png", "description": "Failure screenshot"}
+      ]
+    }
+  ],
+  "evidence": [
+    {"kind": "trace", "path": "playwright-trace.zip", "description": "Trace"}
+  ]
+}
+"""
+    )
+    (run_path / "qa-report.md").write_text("# report")
+
+    update_tracker_item_from_run(tracker_path, item_number=2, env="stg", run_path=run_path)
+
+    updated = tracker_path.read_text()
+    assert "  - stg:\n    - status: failed\n    - notes: Run run_failed failed; report:" in updated
+    assert str(run_path / "result.json") in updated
+    assert str(run_path / "failure-step-001-assert-dashboard.png") in updated
+    assert str(run_path / "playwright-trace.zip") in updated
 
 
 def test_update_tracker_item_rejects_invalid_status(tmp_path: Path):
