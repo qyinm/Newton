@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import tomllib
 
 from typer.testing import CliRunner
 
@@ -49,11 +50,13 @@ class FailingBackend:
         )
 
 
-def test_version_command_prints_version():
+def test_version_command_matches_pyproject_version():
+    project_version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+
     result = CliRunner().invoke(app, ["version"])
 
     assert result.exit_code == 0
-    assert result.stdout.strip() == "0.1.0"
+    assert result.stdout.strip() == project_version
 
 
 def test_qa_validate_accepts_valid_scenario():

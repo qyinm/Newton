@@ -392,10 +392,10 @@ newton version
 
 ### 19. Version and changelog discipline
 
-- [ ] Add `CHANGELOG.md` with an initial v0.1.0 section.
-- [ ] Decide whether version lives only in `src/newton/__init__.py` or is derived from package metadata.
-- [ ] Add a test that CLI `newton version` matches `pyproject.toml`.
-- [ ] Add release checklist commands to `README.md`.
+- [x] Add `CHANGELOG.md` with an initial v0.1.0 section.
+- [x] Decide whether version lives only in `src/newton/__init__.py` or is derived from package metadata.
+- [x] Add a test that CLI `newton version` matches `pyproject.toml`.
+- [x] Add release checklist commands to `README.md`.
 
 Acceptance:
 

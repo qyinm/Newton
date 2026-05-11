@@ -88,6 +88,17 @@ python -m pip install -e '.[dev,web]'
 python -m playwright install chromium
 ```
 
+## Release Checklist
+
+Before tagging a Newton release, update `CHANGELOG.md`, confirm the version in
+`pyproject.toml`, and run:
+
+```bash
+uv run newton version
+uv run --extra dev --extra web pytest tests/test_cli.py -v
+uv build
+```
+
 ## Plan a QA Bundle
 
 Generate a minimal PRD-style planning bundle from markdown product/ticket context:
