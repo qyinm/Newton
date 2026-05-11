@@ -133,10 +133,10 @@ uv run --extra dev --extra web pytest tests/test_planning_bundle_validation.py t
 
 ### 6. Add planning quality evaluation
 
-- [ ] Expand `bundle-review` into a release gate mode that scores coverage, source grounding, estimate clarity, risk usefulness, and automation suitability.
-- [ ] Keep advisory review as a non-blocking mode.
-- [ ] Add `newton qa bundle-review --gate` that exits non-zero under a configured score threshold.
-- [ ] Add a dogfood review artifact for the login example.
+- [x] Expand `bundle-review` into a release gate mode that scores coverage, source grounding, estimate clarity, risk usefulness, and automation suitability.
+- [x] Keep advisory review as a non-blocking mode.
+- [x] Add `newton qa bundle-review --gate` that exits non-zero under a configured score threshold.
+- [x] Add a dogfood review artifact for the login example.
 
 Acceptance:
 

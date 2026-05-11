@@ -629,11 +629,11 @@ def test_qa_bundle_review_template_writes_advisory_review(tmp_path: Path):
     assert review.exit_code == 0
     assert f"review_json: {bundle_dir / 'bundle-review.template.json'}" in review.stdout
     assert f"review_markdown: {bundle_dir / 'bundle-review.template.md'}" in review.stdout
-    assert "score: 80" in review.stdout
+    assert "score: 86" in review.stdout
     assert "verdict: advisory_pass" in review.stdout
     payload = json.loads((bundle_dir / "bundle-review.template.json").read_text())
     assert payload["agent"] == "template"
-    assert payload["score"] == 80
+    assert payload["score"] == 86
 
 
 def test_qa_bundle_review_agent_command_writes_review_artifacts(tmp_path: Path):
@@ -654,7 +654,8 @@ def test_qa_bundle_review_agent_command_writes_review_artifacts(tmp_path: Path):
         "import json, sys\n"
         "prompt = sys.stdin.read()\n"
         "assert 'Review this Newton QA planning bundle' in prompt\n"
-        "print(json.dumps({'score': 66, 'verdict': 'needs_improvement', 'findings': [{'severity': 'medium', 'artifact': 'checklist.md', 'finding': 'Missing negative login cases.', 'suggestion': 'Add invalid password coverage.'}]}))\n"
+        "assert 'coverage' in prompt\n"
+        "print(json.dumps({'score': 66, 'verdict': 'needs_improvement', 'category_scores': {'coverage': 70, 'source_grounding': 65, 'estimate_clarity': 60, 'risk_usefulness': 75, 'automation_suitability': 60}, 'findings': [{'severity': 'medium', 'artifact': 'checklist.md', 'finding': 'Missing negative login cases.', 'suggestion': 'Add invalid password coverage.'}]}))\n"
     )
 
     review = CliRunner().invoke(
@@ -678,7 +679,43 @@ def test_qa_bundle_review_agent_command_writes_review_artifacts(tmp_path: Path):
     assert (bundle_dir / "bundle-review.codex.prompt.txt").exists()
     assert (bundle_dir / "bundle-review.codex.raw.txt").exists()
     markdown = (bundle_dir / "bundle-review.codex.md").read_text()
+    assert "| coverage | 70 |" in markdown
     assert "Missing negative login cases." in markdown
+
+
+def test_qa_bundle_review_gate_exits_nonzero_below_threshold(tmp_path: Path):
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "plan-bundle",
+            "tests/fixtures/inputs/login_ticket.md",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    bundle_dir = tmp_path / "login"
+
+    review = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "bundle-review",
+            str(bundle_dir),
+            "--gate",
+            "--gate-threshold",
+            "90",
+        ],
+    )
+
+    assert review.exit_code == 1
+    assert f"review_json: {bundle_dir / 'bundle-review.template.json'}" in review.stdout
+    assert "score: 86" in review.stdout
+    assert "gate_threshold: 90" in review.stdout
+    assert "gate: failed" in review.stdout
+    payload = json.loads((bundle_dir / "bundle-review.template.json").read_text())
+    assert payload["gate"] == {"enabled": True, "threshold": 90, "passed": False}
 
 
 def test_qa_bug_draft_generates_bug_ticket_from_failed_tracker_item(tmp_path: Path):

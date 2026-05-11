@@ -9,7 +9,7 @@ from newton.agent_planning_bundle import AgentPlanningBundleError, generate_plan
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
 from newton.backends import playwright_setup
 from newton.bug_draft import BugDraftError, write_bug_ticket_draft
-from newton.bundle_review import BundleReviewError, review_planning_bundle
+from newton.bundle_review import DEFAULT_GATE_THRESHOLD, BundleReviewError, review_planning_bundle
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
@@ -165,10 +165,24 @@ def qa_bundle_review(
         help="Override agent command; prompt is sent on stdin",
         hidden=True,
     ),
+    gate: bool = typer.Option(False, "--gate", help="Exit non-zero when the review score is below the threshold"),
+    gate_threshold: int = typer.Option(
+        DEFAULT_GATE_THRESHOLD,
+        "--gate-threshold",
+        min=0,
+        max=100,
+        help="Minimum bundle-review score required when --gate is enabled",
+    ),
 ) -> None:
     """Write an advisory QA planning bundle review."""
     try:
-        result = review_planning_bundle(bundle_dir, agent=agent, command=agent_command)
+        result = review_planning_bundle(
+            bundle_dir,
+            agent=agent,
+            command=agent_command,
+            gate=gate,
+            gate_threshold=gate_threshold,
+        )
     except BundleReviewError as exc:
         raise typer.BadParameter(str(exc)) from exc
 
@@ -176,6 +190,11 @@ def qa_bundle_review(
     typer.echo(f"review_markdown: {result.review_markdown_path}")
     typer.echo(f"score: {result.score}")
     typer.echo(f"verdict: {result.verdict}")
+    if result.gate:
+        typer.echo(f"gate_threshold: {result.gate_threshold}")
+        typer.echo(f"gate: {'passed' if result.gate_passed else 'failed'}")
+        if not result.gate_passed:
+            raise typer.Exit(code=1)
 
 
 @qa_doctor_app.command("web")
