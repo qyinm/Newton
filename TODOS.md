@@ -428,11 +428,11 @@ NEWTON_INSTALL_DRY_RUN=1 bash scripts/install.sh --no-web --ref v0.1.0
 
 ### 21. Split fast and browser CI
 
-- [ ] Keep unit and contract tests fast.
-- [ ] Run Playwright integration tests in a browser job.
-- [ ] Make the browser job required for release branches and tags.
-- [ ] Upload failing Playwright traces and screenshots as CI artifacts.
-- [ ] Add branch protection expectation in docs.
+- [x] Keep unit and contract tests fast.
+- [x] Run Playwright integration tests in a browser job.
+- [x] Make the browser job required for release branches and tags.
+- [x] Upload failing Playwright traces and screenshots as CI artifacts.
+- [x] Add branch protection expectation in docs.
 
 Acceptance:
 
