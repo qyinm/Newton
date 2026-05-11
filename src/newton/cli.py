@@ -7,6 +7,7 @@ import typer
 from newton import __version__
 from newton.agent_planning_bundle import AgentPlanningBundleError, generate_planning_bundle_with_agent
 from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
+from newton.backends import playwright_setup
 from newton.bug_draft import BugDraftError, write_bug_ticket_draft
 from newton.bundle_review import BundleReviewError, review_planning_bundle
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
@@ -20,7 +21,9 @@ from newton.tracker_update import TrackerUpdateError, update_tracker_item, updat
 
 app = typer.Typer(help="Newton QA harness")
 qa_app = typer.Typer(help="QA scenario commands")
+qa_doctor_app = typer.Typer(help="QA setup diagnostics")
 app.add_typer(qa_app, name="qa")
+qa_app.add_typer(qa_doctor_app, name="doctor")
 
 
 @app.command()
@@ -173,6 +176,23 @@ def qa_bundle_review(
     typer.echo(f"review_markdown: {result.review_markdown_path}")
     typer.echo(f"score: {result.score}")
     typer.echo(f"verdict: {result.verdict}")
+
+
+@qa_doctor_app.command("web")
+def qa_doctor_web() -> None:
+    """Check local Playwright web execution setup."""
+    result = playwright_setup.check_playwright_setup()
+    typer.echo(f"status: {result.status}")
+    if result.failure_kind:
+        typer.echo(f"failure: {result.failure_kind}")
+    for check in result.checks:
+        typer.echo(f"{check.name}: {check.status} - {check.message}")
+    if result.remediation:
+        typer.echo("remediation:")
+        for command in result.remediation:
+            typer.echo(f"  {command}")
+    if not result.ok:
+        raise typer.Exit(code=1)
 
 
 @qa_app.command("bug-draft")

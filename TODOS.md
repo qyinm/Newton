@@ -172,11 +172,11 @@ uv run --extra dev --extra web pytest tests/test_cli.py tests/test_runner.py -v
 
 ### 8. Normalize Playwright setup and preflight failures
 
-- [ ] Add a `newton qa doctor web` command that checks Playwright import, Chromium browser availability, and basic headless launch.
-- [ ] Normalize missing browser binaries, launch failure, missing OS dependencies, and unreachable base URL into Newton-style setup results.
-- [ ] Ensure setup/preflight failures produce `result.json` and `qa-report.md` when they occur during `newton qa run`.
-- [ ] Return clear remediation commands when Playwright or Chromium is missing.
-- [ ] Add tests for doctor success, doctor failure messages, and run-time setup failure artifacts.
+- [x] Add a `newton qa doctor web` command that checks Playwright import, Chromium browser availability, and basic headless launch.
+- [x] Normalize missing browser binaries, launch failure, missing OS dependencies, and unreachable base URL into Newton-style setup results.
+- [x] Ensure setup/preflight failures produce `result.json` and `qa-report.md` when they occur during `newton qa run`.
+- [x] Return clear remediation commands when Playwright or Chromium is missing.
+- [x] Add tests for doctor success, doctor failure messages, and run-time setup failure artifacts.
 
 Acceptance:
 

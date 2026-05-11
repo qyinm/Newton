@@ -4,6 +4,7 @@ import json
 from typer.testing import CliRunner
 
 from newton.cli import app
+from newton.backends.playwright_setup import PlaywrightSetupCheck, PlaywrightSetupResult
 from newton.models import RunResult, StepResult
 
 
@@ -196,6 +197,100 @@ def test_qa_run_accepts_plan_provenance_option(tmp_path: Path):
     assert payload["planning"]["agent"] == "template"
     index_entries = [json.loads(line) for line in (tmp_path / "runs" / "index.jsonl").read_text().splitlines()]
     assert index_entries[0]["planning_provenance_path"] == str(provenance_path)
+
+
+def test_qa_doctor_web_reports_success(monkeypatch):
+    from newton.backends import playwright_setup
+
+    monkeypatch.setattr(
+        playwright_setup,
+        "check_playwright_setup",
+        lambda: PlaywrightSetupResult(
+            status="passed",
+            checks=[
+                PlaywrightSetupCheck(
+                    name="playwright_import",
+                    status="passed",
+                    message="Playwright import is available.",
+                ),
+                PlaywrightSetupCheck(
+                    name="chromium_launch",
+                    status="passed",
+                    message="Chromium launched headlessly.",
+                ),
+            ],
+        ),
+    )
+
+    result = CliRunner().invoke(app, ["qa", "doctor", "web"])
+
+    assert result.exit_code == 0
+    assert "status: passed" in result.stdout
+    assert "playwright_import: passed" in result.stdout
+    assert "chromium_launch: passed" in result.stdout
+
+
+def test_qa_doctor_web_reports_missing_chromium_remediation(monkeypatch):
+    from newton.backends import playwright_setup
+
+    monkeypatch.setattr(
+        playwright_setup,
+        "check_playwright_setup",
+        lambda: playwright_setup.setup_failure_result(
+            "missing_chromium",
+            "Executable does not exist for Chromium.",
+        ),
+    )
+
+    result = CliRunner().invoke(app, ["qa", "doctor", "web"])
+
+    assert result.exit_code == 1
+    assert "status: failed" in result.stdout
+    assert "missing_chromium" in result.stdout
+    assert "python -m playwright install chromium" in result.stdout
+    assert "python -m playwright install --with-deps chromium" in result.stdout
+
+
+def test_qa_run_playwright_setup_failure_writes_artifacts(tmp_path: Path, monkeypatch):
+    from newton.backends import playwright_setup
+
+    monkeypatch.setattr(
+        playwright_setup,
+        "check_playwright_setup",
+        lambda: playwright_setup.setup_failure_result(
+            "missing_chromium",
+            "Executable does not exist for Chromium.",
+        ),
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "qa",
+            "run",
+            "tests/fixtures/scenarios/web_login.yaml",
+            "--target",
+            "web",
+            "--backend",
+            "playwright",
+            "--out",
+            str(tmp_path / "runs"),
+        ],
+    )
+
+    assert result.exit_code == 1
+    result_paths = list((tmp_path / "runs").glob("run_*/result.json"))
+    report_paths = list((tmp_path / "runs").glob("run_*/qa-report.md"))
+    assert result_paths
+    assert report_paths
+    payload = json.loads(result_paths[0].read_text())
+    assert payload["status"] == "failed"
+    assert payload["steps"][0]["id"] == "setup"
+    assert "missing_chromium" in payload["steps"][0]["error"]
+    assert "python -m playwright install chromium" in payload["steps"][0]["error"]
+    report = report_paths[0].read_text()
+    assert "missing_chromium" in report
+    assert "python -m playwright install chromium" in report
 
 
 def test_qa_runs_lists_local_run_index(tmp_path: Path):

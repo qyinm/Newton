@@ -4,6 +4,7 @@ from pathlib import Path
 from time import monotonic
 from urllib.parse import urljoin
 
+from newton.backends import playwright_setup
 from newton.models import EvidenceArtifact, RunResult, Scenario, ScenarioStep, ScenarioTarget, StepResult
 
 
@@ -24,25 +25,10 @@ def selector_description(selector: dict[str, object]) -> str:
 
 class PlaywrightBackend:
     def run(self, scenario: Scenario, target: ScenarioTarget, run_dir: Path) -> RunResult:
-        try:
-            return self._run_with_playwright(scenario, target, run_dir)
-        except ImportError:
-            steps = [
-                StepResult(
-                    id="setup",
-                    action="import_playwright",
-                    status="failed",
-                    error="Playwright is not installed. Run: python -m pip install -e '.[web]' && python -m playwright install chromium",
-                )
-            ]
-            return RunResult(
-                run_id=run_dir.name,
-                scenario_id=scenario.meta.id,
-                target_id=target.id,
-                platform=target.platform,
-                status="failed",
-                steps=steps,
-            )
+        setup_result = playwright_setup.check_playwright_setup()
+        if not setup_result.ok:
+            return playwright_setup.run_result_from_setup_failure(setup_result, scenario, target, run_dir)
+        return self._run_with_playwright(scenario, target, run_dir)
 
     def _run_with_playwright(self, scenario: Scenario, target: ScenarioTarget, run_dir: Path) -> RunResult:
         from playwright.sync_api import sync_playwright
@@ -74,6 +60,26 @@ class PlaywrightBackend:
                             )
                         )
                     except Exception as exc:  # noqa: BLE001
+                        navigation_failure = self._navigation_preflight_failure(target, step, exc)
+                        if navigation_failure is not None:
+                            status = "failed"
+                            step_results.append(
+                                playwright_setup.step_result_from_setup_failure(
+                                    navigation_failure,
+                                    step_id="preflight-base-url",
+                                    action="reach_base_url",
+                                )
+                            )
+                            for remaining_step in scenario.steps[index - 1 :]:
+                                step_results.append(
+                                    StepResult(
+                                        id=remaining_step.id,
+                                        action=remaining_step.action,
+                                        status="skipped",
+                                        error="Not executed because web preflight failed",
+                                    )
+                                )
+                            break
                         status = "failed"
                         step_evidence: list[EvidenceArtifact] = []
                         if scenario.evidence.screenshots in {"on_failure", "after_each_step"}:
@@ -156,6 +162,20 @@ class PlaywrightBackend:
             page.wait_for_url(expected_url, timeout=step.timeout_ms)
             return
         raise ValueError(f"unsupported web action: {step.action}")
+
+    def _navigation_preflight_failure(
+        self,
+        target: ScenarioTarget,
+        step: ScenarioStep,
+        exc: BaseException,
+    ):
+        if step.action not in {"navigate", "goto"}:
+            return None
+        try:
+            url = self._resolve_url(target, step)
+        except ValueError:
+            url = str(target.base_url or step.value or "target URL")
+        return playwright_setup.setup_result_from_navigation_error(exc, url)
 
     def _resolve_url(self, target: ScenarioTarget, step: ScenarioStep) -> str:
         selector = step.target.web if step.target and step.target.web else {}

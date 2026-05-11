@@ -15,6 +15,18 @@ In GitHub Actions or fresh Linux runners, prefer:
 python -m playwright install --with-deps chromium
 ```
 
+Check a workstation or CI runner before executing scenarios:
+
+```bash
+newton qa doctor web
+```
+
+The doctor checks the Playwright Python import, Chromium availability, and a basic headless Chromium launch. If setup is incomplete, it exits non-zero and prints the same remediation commands Newton writes into failed run artifacts:
+
+- Missing Playwright package: `python -m pip install -e '.[web]'`
+- Missing Chromium browser binary: `python -m playwright install chromium`
+- Missing Linux OS dependencies: `python -m playwright install --with-deps chromium`
+
 ## Run
 
 ```bash
@@ -43,6 +55,8 @@ newton qa run qa/scenarios/web-login-smoke.yaml \
 ```
 
 Newton writes `result.json`, `qa-report.md`, and `index.jsonl` before the command exits. Passing runs exit `0`; non-passing runs exit non-zero so CI can block the release. Reserve `--allow-failure` for dogfood or diagnostic runs that intentionally capture failing evidence without failing the shell command.
+
+If Playwright setup or web preflight fails during `newton qa run`, Newton still writes `result.json` and `qa-report.md`. Setup failures use a `setup` step and base URL reachability failures use a `preflight-base-url` step so CI and agents can read the failure without parsing a Playwright stack trace.
 
 ## Supported web actions
 

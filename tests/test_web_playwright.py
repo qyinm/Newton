@@ -4,9 +4,14 @@ import importlib.util
 
 import pytest
 
+from newton.backends.playwright_setup import (
+    chromium_ready,
+    setup_failure_result,
+    setup_result_from_navigation_error,
+)
 from newton.backends.web_playwright import PlaywrightBackend, selector_description
 
-HAS_PLAYWRIGHT = importlib.util.find_spec("playwright") is not None
+HAS_PLAYWRIGHT = importlib.util.find_spec("playwright") is not None and chromium_ready()
 from newton.models import EvidenceArtifact, RunResult, StepResult
 from newton.scenario_loader import load_scenario
 
@@ -65,6 +70,36 @@ def test_playwright_backend_stores_relative_screenshot_and_trace_evidence(tmp_pa
     assert all(not Path(artifact.path).is_absolute() for step in result.steps for artifact in step.evidence)
     assert result.evidence[0].path == "playwright-trace.zip"
     assert result.steps[0].evidence[0].path.startswith("failure-step-005-")
+
+
+def test_playwright_setup_result_for_missing_playwright_includes_install_command():
+    result = setup_failure_result("missing_playwright", "No module named 'playwright'")
+
+    assert result.status == "failed"
+    assert result.failure_kind == "missing_playwright"
+    assert "python -m pip install -e '.[web]'" in result.remediation
+    assert "python -m playwright install chromium" in result.remediation
+    assert "missing_playwright" in result.format_error()
+
+
+def test_playwright_setup_result_for_missing_os_dependencies_includes_with_deps_command():
+    result = setup_failure_result("missing_os_dependencies", "Host system is missing dependencies.")
+
+    assert result.status == "failed"
+    assert result.failure_kind == "missing_os_dependencies"
+    assert "python -m playwright install --with-deps chromium" in result.remediation
+
+
+def test_playwright_navigation_error_becomes_unreachable_base_url_preflight():
+    result = setup_result_from_navigation_error(
+        RuntimeError("Page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:65535/login"),
+        "http://127.0.0.1:65535/login",
+    )
+
+    assert result is not None
+    assert result.failure_kind == "unreachable_base_url"
+    assert "http://127.0.0.1:65535/login" in result.message
+    assert "newton qa run" in result.remediation[0]
 
 
 @pytest.mark.skipif(not HAS_PLAYWRIGHT, reason="Playwright package is required for browser integration")
