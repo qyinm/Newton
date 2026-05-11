@@ -353,9 +353,9 @@ uv run --extra dev --extra web pytest tests/test_claude_plugin.py -v
 
 ### 17. Add agent handoff packets
 
-- [ ] Add a `newton qa handoff` command that prints or writes a compact artifact summary for another agent.
-- [ ] Include bundle path, scenario path, run id, report path, evidence paths, tracker path, and bug draft path when available.
-- [ ] Add tests using existing dogfood artifacts.
+- [x] Add a `newton qa handoff` command that prints or writes a compact artifact summary for another agent.
+- [x] Include bundle path, scenario path, run id, report path, evidence paths, tracker path, and bug draft path when available.
+- [x] Add tests using existing dogfood artifacts.
 
 Acceptance:
 

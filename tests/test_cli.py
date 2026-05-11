@@ -1201,3 +1201,34 @@ def test_qa_report_prints_existing_report_path(tmp_path: Path):
 
     assert result.exit_code == 0
     assert str(report_path) in result.stdout
+
+
+def test_qa_handoff_prints_dogfood_agent_packet():
+    result = CliRunner().invoke(app, ["qa", "handoff", "qa/dogfood/login"])
+
+    assert result.exit_code == 0
+    assert "bundle_path: qa/dogfood/login/plan" in result.stdout
+    assert "scenario_path: qa/dogfood/login/scenario/login-smoke.generated.yaml" in result.stdout
+    assert "run_id: run_c96d5ae286d8" in result.stdout
+    assert "report_path: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md" in result.stdout
+    assert "evidence_paths:" in result.stdout
+    assert "  - qa/dogfood/login/runs/run_c96d5ae286d8/failure-step-005-assert-dashboard.png" in result.stdout
+    assert "  - qa/dogfood/login/runs/run_c96d5ae286d8/playwright-trace.zip" in result.stdout
+    assert "tracker_path: qa/dogfood/login/plan/qa-run-tracker.md" in result.stdout
+    assert "bug_draft_path: qa/dogfood/login/bug-ticket-draft.md" in result.stdout
+
+
+def test_qa_handoff_writes_dogfood_agent_packet(tmp_path: Path):
+    out_path = tmp_path / "agent-handoff.md"
+
+    result = CliRunner().invoke(app, ["qa", "handoff", "qa/dogfood/login", "--out", str(out_path)])
+
+    assert result.exit_code == 0
+    assert f"handoff: {out_path}" in result.stdout
+    packet = out_path.read_text()
+    assert "bundle_path: qa/dogfood/login/plan" in packet
+    assert "scenario_path: qa/dogfood/login/scenario/login-smoke.generated.yaml" in packet
+    assert "run_id: run_c96d5ae286d8" in packet
+    assert "report_path: qa/dogfood/login/runs/run_c96d5ae286d8/qa-report.md" in packet
+    assert "tracker_path: qa/dogfood/login/plan/qa-run-tracker.md" in packet
+    assert "bug_draft_path: qa/dogfood/login/bug-ticket-draft.md" in packet

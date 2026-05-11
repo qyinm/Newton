@@ -10,6 +10,7 @@ from newton.agent_planner import AgentPlanningError, plan_scenario_with_agent
 from newton.backends import playwright_setup
 from newton.bug_draft import BugDraftError, write_bug_ticket_draft
 from newton.bundle_review import DEFAULT_GATE_THRESHOLD, BundleReviewError, review_planning_bundle
+from newton.handoff import HandoffError, build_handoff_packet, render_handoff_packet, write_handoff_packet
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
@@ -319,6 +320,37 @@ def qa_report(run_path: Path) -> None:
     if not report_path.exists():
         raise typer.BadParameter(f"qa report not found: {report_path}")
     typer.echo(str(report_path))
+
+
+@qa_app.command("handoff")
+def qa_handoff(
+    workspace: Path = typer.Argument(Path("."), help="QA artifact workspace to scan"),
+    bundle: Path | None = typer.Option(None, "--bundle", help="Planning bundle directory"),
+    scenario: Path | None = typer.Option(None, "--scenario", help="Scenario YAML path"),
+    run: Path | None = typer.Option(None, "--run", help="Run directory containing result.json"),
+    tracker: Path | None = typer.Option(None, "--tracker", help="QA run tracker path"),
+    bug_draft: Path | None = typer.Option(None, "--bug-draft", help="Bug ticket draft path"),
+    out: Path | None = typer.Option(None, "--out", help="Write handoff packet to this path"),
+) -> None:
+    """Print or write a compact QA artifact summary for another agent."""
+    try:
+        packet = build_handoff_packet(
+            workspace,
+            bundle_path=bundle,
+            scenario_path=scenario,
+            run_path=run,
+            tracker_path=tracker,
+            bug_draft_path=bug_draft,
+        )
+    except HandoffError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    if out is not None:
+        output_path = write_handoff_packet(packet, out)
+        typer.echo(f"handoff: {output_path}")
+        return
+
+    typer.echo(render_handoff_packet(packet), nl=False)
 
 
 @qa_app.command("runs")
