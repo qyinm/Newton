@@ -175,7 +175,21 @@ Rules:
 - The YAML must validate with Newton's scenario schema.
 - Generate one scenario only.
 - Use target bindings for every non-navigation step.
-- For web targets, use Playwright-friendly selectors such as url, text, test_id, role/name.
+- For web targets, use Playwright-friendly flat selectors at the target.web level:
+  - url: "/path" for navigation/url assertions
+  - text: "visible text" for text assertions
+  - test_id: "data-testid-value" for test-id selectors
+  - role: "button" with name: "Button Label" for role/name selectors
+  IMPORTANT: role and name must be sibling flat keys under target.web, NOT nested like role: {{role: ..., name: ...}}
+  Correct example:
+    target:
+      web:
+        role: button
+        name: Sign in
+  Wrong example (will be rejected):
+    target:
+      web:
+        role: {{role: button, name: "Sign in"}}
 - Do not wrap the output unless your CLI requires fenced output; Newton will extract a yaml fence if present.
 
 Markdown context:
@@ -196,7 +210,7 @@ def _agent_command(agent: str, prompt: str, command: Sequence[str] | str | None)
 
 def _default_agent_command(agent: str) -> list[str]:
     if agent == "codex":
-        return ["codex", "exec", "-"]
+        return ["codex", "exec", "--sandbox", "read-only", "-"]
     if agent == "claude":
         return ["claude", "-p"]
     raise AgentPlanningError(f"unsupported planning agent: {agent}")
