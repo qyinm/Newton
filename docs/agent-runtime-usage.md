@@ -38,6 +38,7 @@ newton qa report <run-dir>
 - Agents should call the CLI rather than invent ad-hoc workflows.
 - `qa plan-bundle` turns one or more markdown context files into a deterministic minimal planning bundle: scope, checklist, structured test cases CSV, PRD baseline risk map, QA estimate, automation candidates, QA run tracker, and manifest.
 - `qa bundle-validate` deterministically checks a planning bundle's required files, manifest paths, item counts, and baseline risks before agent/CI handoff.
+- `qa eval-planning` regenerates benchmark planning bundles and scores required terms, risks, estimates, checklist count, and source references before treating planning quality as improved.
 - Template mode is deterministic local code. It does not call Codex, Claude, or any other external agent.
 - `qa bundle-review` optionally asks `template`, Codex, or Claude for advisory QA quality feedback and writes validated review JSON/Markdown artifacts. Default external review commands are constrained to read-only/no-tool mode; custom agent commands are an explicit escape hatch.
 - `qa tracker-update` updates one generated QA run tracker checklist item plus the selected environment status.

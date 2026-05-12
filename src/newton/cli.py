@@ -14,6 +14,7 @@ from newton.handoff import HandoffError, build_handoff_packet, render_handoff_pa
 from newton.plan_provenance import PlanProvenanceError, write_plan_provenance
 from newton.planner import PlanningError, plan_scenario_from_markdown
 from newton.planning_bundle import PlanningBundleError, generate_planning_bundle
+from newton.planning_eval import PlanningEvalError, evaluate_planning_cases
 from newton.planning_bundle_validation import PlanningBundleValidationError, validate_planning_bundle
 from newton.run_index import read_run_index
 from newton.runner import run_scenario
@@ -199,6 +200,33 @@ def qa_bundle_review(
         typer.echo(f"gate: {'passed' if result.gate_passed else 'failed'}")
         if not result.gate_passed:
             raise typer.Exit(code=1)
+
+
+@qa_app.command("eval-planning")
+def qa_eval_planning(
+    cases: Path,
+    out: Path = typer.Option(Path("qa/evals/runs"), "--out", help="Planning eval output directory"),
+    min_score: int = typer.Option(
+        80,
+        "--min-score",
+        min=0,
+        max=100,
+        help="Minimum average eval score required for the command to pass",
+    ),
+) -> None:
+    """Evaluate template planning quality against planning benchmark cases."""
+    try:
+        result = evaluate_planning_cases(cases, out_dir=out, min_score=min_score)
+    except PlanningEvalError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(f"planning_eval_json: {result.report_json_path}")
+    typer.echo(f"planning_eval_markdown: {result.report_markdown_path}")
+    typer.echo(f"cases: {result.case_count}")
+    typer.echo(f"score: {result.score}")
+    typer.echo(f"passed: {'yes' if result.passed else 'no'}")
+    if not result.passed:
+        raise typer.Exit(code=1)
 
 
 def _warn_agent_command_override(*, agent: str, agent_command: str | None) -> None:

@@ -203,6 +203,24 @@ test_cases: 8
 tracker_items: 8
 ```
 
+Evaluate planning quality against benchmark cases before claiming a planning improvement:
+
+```bash
+newton qa eval-planning qa/evals/planning --out qa/evals/runs --min-score 100
+```
+
+Expected:
+
+```text
+planning_eval_json: qa/evals/runs/planning-eval-report.json
+planning_eval_markdown: qa/evals/runs/planning-eval-report.md
+cases: 1
+score: 100
+passed: yes
+```
+
+Each case contains source markdown plus `expected.json`; Newton regenerates a planning bundle, validates it, then checks required coverage terms, risk categories, estimate size, checklist count, and source references.
+
 Optionally request an advisory QA review after generation. `bundle-review` does not generate or edit the bundle: `template` is deterministic; `codex` and `claude` use an external agent and preserve prompt/raw output next to the review artifacts. Default external review commands are constrained (`codex` read-only sandbox, `claude` tools disabled); `--agent-command` is an explicit override for tests or custom setups:
 
 ```bash

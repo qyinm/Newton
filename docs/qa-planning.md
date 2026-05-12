@@ -97,6 +97,32 @@ newton qa bundle-review qa/plans/login --agent codex
 
 `bundle-review` is not a pass/fail gate. It writes `bundle-review.<agent>.json` and `bundle-review.<agent>.md` next to the bundle. Agent-backed reviews also preserve `bundle-review.<agent>.prompt.txt` and `bundle-review.<agent>.raw.txt`. Default external review commands are constrained (`codex exec --sandbox read-only -`, `claude -p --tools ""`); custom `--agent-command` is an explicit escape hatch. Newton validates only the review JSON shape (`score`, `verdict`, and findings); the semantic feedback remains advisory.
 
+## Planning eval
+
+Use `eval-planning` to keep planning changes honest against committed benchmark cases:
+
+```bash
+newton qa eval-planning qa/evals/planning --out qa/evals/runs --min-score 100
+```
+
+The evaluator regenerates each case's planning bundle in the output directory, validates the bundle contract, and scores expected coverage:
+
+- required terms across generated artifacts
+- required risk categories
+- allowed estimate sizes
+- minimum checklist count
+- minimum source-reference count
+
+Outputs:
+
+```text
+qa/evals/runs/planning-eval-report.json
+qa/evals/runs/planning-eval-report.md
+qa/evals/runs/<case-id>/bundle/
+```
+
+Add a case as a directory with `input.md`, optional `sources/*.md`, and `expected.json`. Keep the expected file focused on real QA lead review criteria rather than implementation details.
+
 ## Tracker updates and bug ticket drafts
 
 Update a generated `qa-run-tracker.md` checklist item from the CLI:

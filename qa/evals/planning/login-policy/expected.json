@@ -1,0 +1,33 @@
+{
+  "id": "login-policy",
+  "description": "Realistic login planning benchmark covering policy copy, locked users, dashboard success, and regression smoke automation.",
+  "input": "input.md",
+  "sources": [
+    "sources/policy.md",
+    "sources/design-notes.md"
+  ],
+  "min_score": 100,
+  "min_checklist_items": 10,
+  "required_terms": [
+    "Dashboard",
+    "locked users",
+    "account enumeration",
+    "generic guidance",
+    "Submit remains disabled"
+  ],
+  "required_risk_categories": [
+    "functional",
+    "edge case",
+    "network failure",
+    "permission/role",
+    "policy conflict",
+    "regression",
+    "data state",
+    "localization/copy"
+  ],
+  "allowed_estimate_sizes": [
+    "M",
+    "L"
+  ],
+  "min_source_references": 6
+}

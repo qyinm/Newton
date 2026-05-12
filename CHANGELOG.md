@@ -2,6 +2,12 @@
 
 All notable changes to Newton are tracked here.
 
+## Unreleased
+
+### Added
+
+- Planning benchmark evaluation through `newton qa eval-planning`, with JSON and Markdown reports for source-backed QA planning quality checks.
+
 ## v0.1.0
 
 Initial web-first release baseline.
